@@ -1,6 +1,6 @@
 import { useState } from "react";
 import { Combobox } from "@base-ui/react/combobox";
-import { HugeiconsIcon, type IconSvgElement } from "@hugeicons/react";
+import { HugeiconsIcon } from "@hugeicons/react";
 import { Search01Icon } from "@hugeicons/core-free-icons";
 import { cn } from "@/lib/utils";
 import {
@@ -10,6 +10,7 @@ import {
   type CatalogIcon,
   type CatalogIconGroup,
 } from "@/lib/iconCatalog";
+import { CatalogIconPicture } from "./CatalogIconPicture";
 import { Button } from "./ui/button";
 
 const COLUMNS = 8;
@@ -20,14 +21,13 @@ const items = Combobox.createItems<CatalogIcon, string>(ICON_GROUPS, {
 });
 
 const sizes = {
-  default: { trigger: "size-8 rounded-lg", icon: "size-4", strokeWidth: 2 },
-  lg: { trigger: "size-12 rounded-xl", icon: "size-8", strokeWidth: 1.75 },
+  default: { trigger: "size-8 rounded-lg", icon: "size-4", logoStrokeWidth: 2 },
+  lg: { trigger: "size-12 rounded-xl", icon: "size-8", logoStrokeWidth: 1.75 },
 };
 
 type Props = {
   value: string | null;
   onValueChange: (value: string | null) => void;
-  placeholder: IconSvgElement;
   size?: keyof typeof sizes;
   className?: string;
   "aria-label"?: string;
@@ -36,7 +36,6 @@ type Props = {
 export const IconPicker = ({
   value,
   onValueChange,
-  placeholder,
   size = "default",
   className,
   "aria-label": ariaLabel = "Choose an icon",
@@ -73,6 +72,7 @@ export const IconPicker = ({
         aria-label={ariaLabel}
         render={
           <Button
+            data-kubai-trigger
             variant="ghost"
             size="icon"
             className={cn(
@@ -83,10 +83,11 @@ export const IconPicker = ({
           />
         }
       >
-        <HugeiconsIcon
+        <CatalogIconPicture
           key={state.picks}
-          icon={selected?.svg ?? placeholder}
-          strokeWidth={sizes[size].strokeWidth}
+          icon={selected}
+          trigger="parent"
+          logoStrokeWidth={sizes[size].logoStrokeWidth}
           className={cn(
             sizes[size].icon,
             selected
@@ -187,6 +188,7 @@ const IconPickerItem = ({ icon }: { icon: CatalogIcon }) => (
   <Combobox.Item
     value={icon.name}
     aria-label={icon.label}
+    data-kubai-trigger
     className={cn(
       "flex aspect-square cursor-default items-center justify-center rounded-lg text-foreground/75 outline-none select-none",
       "data-highlighted:bg-accent data-highlighted:text-accent-foreground",
@@ -195,7 +197,7 @@ const IconPickerItem = ({ icon }: { icon: CatalogIcon }) => (
       "transition-transform duration-200 ease-out-quint active:scale-90 active:duration-100 motion-reduce:active:scale-100",
     )}
   >
-    <HugeiconsIcon icon={icon.svg} strokeWidth={2} className="size-4.5" />
+    <CatalogIconPicture icon={icon} trigger="parent" className="size-4.5" />
   </Combobox.Item>
 );
 

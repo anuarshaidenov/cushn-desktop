@@ -45,7 +45,6 @@ import { Layers01Icon } from "@hugeicons/core-free-icons";
 import { cn } from "@/lib/utils";
 import { IconPicker } from "./IconPicker";
 import { CurrencyPicker } from "./CurrencyPicker";
-import { CushnIcon } from "./icons";
 import { useHotkey } from "@tanstack/react-hotkeys";
 import { appHotkeys } from "@/lib/hotkeys";
 
@@ -206,7 +205,6 @@ export function AddBudgetDialog() {
                 <IconPicker
                   value={field.state.value}
                   onValueChange={field.handleChange}
-                  placeholder={CushnIcon}
                   size="lg"
                   aria-label="Budget icon"
                   className="-ml-2"

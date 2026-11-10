@@ -1,12 +1,11 @@
 import { useState } from "react";
 import { toast } from "@/components/ui/toast";
-import { HugeiconsIcon } from "@hugeicons/react";
 import type { Id } from "@shared/domain";
 import { useSetBudgetIcon } from "@/data/budgets";
 import { findIcon } from "@/lib/iconCatalog";
 import { cn } from "@/lib/utils";
+import { CatalogIconPicture } from "./CatalogIconPicture";
 import { IconPicker } from "./IconPicker";
-import { CushnIcon } from "./icons";
 
 type Props = {
   budgetId: Id<"budgets">;
@@ -36,7 +35,6 @@ export const BudgetIcon = (props: Props) => {
     <IconPicker
       value={icon}
       onValueChange={change}
-      placeholder={CushnIcon}
       size="lg"
       aria-label="Budget icon"
       className="-ml-2"
@@ -50,10 +48,8 @@ export const BudgetIconGlyph = (props: {
 }) => {
   const found = findIcon(props.icon);
   return (
-    <HugeiconsIcon
-      icon={found?.svg ?? CushnIcon}
-      strokeWidth={2}
-      aria-hidden
+    <CatalogIconPicture
+      icon={found}
       className={cn(
         "size-4 shrink-0",
         !found && "text-muted-foreground",

@@ -2,11 +2,11 @@ import { memo } from "react";
 import { HugeiconsIcon } from "@hugeicons/react";
 import {
   ArrowRight01Icon,
-  Calendar03Icon,
   DragDropVerticalIcon,
   MoreVerticalCircle01Icon,
   SidebarLeftIcon,
 } from "@hugeicons/core-free-icons";
+import { BudgetIconGlyph } from "@/components/BudgetIcon";
 import { cn } from "@/lib/utils";
 
 const ICON_BUTTON =
@@ -85,9 +85,8 @@ export const NotesDemoWindow = memo(function NotesDemoWindow() {
                         <div className="mb-10 flex flex-col gap-4 @min-[480px]:gap-10">
                           <div className="flex flex-col gap-2">
                             <div className="-ml-2 inline-flex size-12 shrink-0 items-center justify-center rounded-xl">
-                              <HugeiconsIcon
-                                icon={Calendar03Icon}
-                                strokeWidth={1.75}
+                              <BudgetIconGlyph
+                                icon="calendar"
                                 className="size-8 text-foreground"
                               />
                             </div>

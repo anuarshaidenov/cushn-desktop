@@ -69,6 +69,7 @@
     "cmdk": "^1.1.1",
     "drizzle-orm": "^0.45.4",
     "electron-updater": "^6.8.11",
+    "kubai-icons-react": "0.4.0",
     "react": "~19.2.9",
     "react-dom": "~19.2.9",
     "react-resizable-panels": "^3.0.6",

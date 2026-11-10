@@ -2,21 +2,16 @@ import { Fragment } from "react";
 import { HugeiconsIcon, type IconSvgElement } from "@hugeicons/react";
 import {
   Add01Icon,
-  Airplane01Icon,
   Archive02Icon,
   BookOpen02Icon,
-  Briefcase01Icon,
-  Calendar03Icon,
   Cancel01Icon,
   Delete02Icon,
   Grid3x3Icon,
   Home01Icon,
-  Home03Icon,
   KeyboardIcon,
   Layers01Icon,
   ListFilterIcon,
   ListIcon,
-  Luggage01Icon,
   MoreVerticalCircle01Icon,
   Search01Icon,
   Settings05Icon,
@@ -26,6 +21,7 @@ import {
   WalletCardsIcon,
 } from "@hugeicons/core-free-icons";
 import { isHotkeySequence, type Hotkey } from "@tanstack/react-hotkeys";
+import { BudgetIconGlyph } from "@/components/BudgetIcon";
 import { HotkeyKeys } from "@/components/ShortcutKeys";
 import { buttonVariants } from "@/components/ui/button";
 import { ButtonGroup } from "@/components/ui/button-group";
@@ -61,21 +57,20 @@ export const matches = (value: string, text: string) => {
 
 // prettier-ignore
 const budgets = [
-  { name: "Home office", icon: Home03Icon, date: "Oct 31, 2026", amount: "1 500 $", template: "75/10/15", label: "Yearly", color: "rgb(16, 185, 129)" },
-  { name: "Tokyo trip", icon: Airplane01Icon, date: "Oct 31, 2026", amount: "320 000 ¥", template: "Travel", label: "One-time", color: "rgb(139, 92, 246)" },
-  { name: "September budget", icon: Calendar03Icon, date: "Oct 31, 2026", amount: "4 800 $", template: "50/30/20", label: "Monthly", color: "rgb(249, 115, 22)" },
-  { name: "October budget", icon: Calendar03Icon, date: "Oct 24, 2026", amount: "5 000 $", template: "50/30/20", label: "Monthly", color: "rgb(249, 115, 22)" },
-  { name: "Freelance income", icon: Briefcase01Icon, date: "Oct 10, 2026", amount: "2 400 $", template: "75/10/15", label: "Monthly", color: "rgb(249, 115, 22)" },
-  { name: "Lisbon trip", icon: Luggage01Icon, date: "Oct 1, 2026", amount: "2 000 €", template: "Travel", label: "One-time", color: "rgb(139, 92, 246)" },
-  { name: "August budget", icon: Calendar03Icon, date: "Sep 28, 2026", amount: "4 600 $", template: "50/30/20", label: "Monthly", color: "rgb(249, 115, 22)" },
-  { name: "July budget", icon: Calendar03Icon, date: "Aug 30, 2026", amount: "4 600 $", template: "50/30/20", label: "Monthly", color: "rgb(249, 115, 22)" },
+  { name: "Home office", icon: "home", date: "Oct 31, 2026", amount: "1 500 $", template: "75/10/15", label: "Yearly", color: "rgb(16, 185, 129)" },
+  { name: "Tokyo trip", icon: "flights", date: "Oct 31, 2026", amount: "320 000 ¥", template: "Travel", label: "One-time", color: "rgb(139, 92, 246)" },
+  { name: "September budget", icon: "calendar", date: "Oct 31, 2026", amount: "4 800 $", template: "50/30/20", label: "Monthly", color: "rgb(249, 115, 22)" },
+  { name: "October budget", icon: "calendar", date: "Oct 24, 2026", amount: "5 000 $", template: "50/30/20", label: "Monthly", color: "rgb(249, 115, 22)" },
+  { name: "Freelance income", icon: "work", date: "Oct 10, 2026", amount: "2 400 $", template: "75/10/15", label: "Monthly", color: "rgb(249, 115, 22)" },
+  { name: "Lisbon trip", icon: "luggage", date: "Oct 1, 2026", amount: "2 000 €", template: "Travel", label: "One-time", color: "rgb(139, 92, 246)" },
+  { name: "August budget", icon: "calendar", date: "Sep 28, 2026", amount: "4 600 $", template: "50/30/20", label: "Monthly", color: "rgb(249, 115, 22)" },
+  { name: "July budget", icon: "calendar", date: "Aug 30, 2026", amount: "4 600 $", template: "50/30/20", label: "Monthly", color: "rgb(249, 115, 22)" },
 ];
 
 type Command = {
   label: string;
-  icon: IconSvgElement;
-  /** Budgets' icons carry their own size, as BudgetIconGlyph's do. */
-  iconClass?: string;
+  /** A budget's icon name, or an interface glyph. */
+  icon: string | IconSvgElement;
   keywords?: string;
   /** The declared default, which the demo's story presses. */
   hotkey?: Hotkey;
@@ -86,11 +81,7 @@ type Command = {
 const groups: { heading: string; commands: Command[] }[] = [
   {
     heading: "Budgets",
-    commands: budgets.map((b) => ({
-      label: b.name,
-      icon: b.icon,
-      iconClass: "size-4 shrink-0",
-    })),
+    commands: budgets.map((b) => ({ label: b.name, icon: b.icon })),
   },
   {
     heading: "General",
@@ -219,11 +210,7 @@ export const ShortcutsDemoWindow = ({ still }: { still: boolean }) => {
                       <Card className="h-full gap-3 p-4">
                         <CardHeader className="px-0">
                           <CardTitle className="flex min-w-0 items-center gap-2 text-sm leading-loose">
-                            <HugeiconsIcon
-                              icon={b.icon}
-                              strokeWidth={2}
-                              className="size-4 shrink-0"
-                            />
+                            <BudgetIconGlyph icon={b.icon} />
                             <span className="truncate">{b.name}</span>
                           </CardTitle>
                           <CardDescription className="px-0 text-xs">
@@ -335,11 +322,11 @@ export const ShortcutsDemoWindow = ({ still }: { still: boolean }) => {
                           hidden={!shown.includes(c)}
                           className={item}
                         >
-                          <HugeiconsIcon
-                            icon={c.icon}
-                            strokeWidth={2}
-                            className={c.iconClass}
-                          />
+                          {typeof c.icon === "string" ? (
+                            <BudgetIconGlyph icon={c.icon} />
+                          ) : (
+                            <HugeiconsIcon icon={c.icon} strokeWidth={2} />
+                          )}
                           {c.label}
                           {c.hotkey && (
                             <HotkeyKeys hotkey={c.hotkey} className="ml-auto" />

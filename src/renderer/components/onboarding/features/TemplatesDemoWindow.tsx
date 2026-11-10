@@ -5,10 +5,10 @@ import {
   ArrowUp02Icon,
   Cancel01Icon,
   Layers01Icon,
-  Luggage01Icon,
   SidebarLeftIcon,
   Tick02Icon,
 } from "@hugeicons/core-free-icons";
+import { BudgetIconGlyph } from "@/components/BudgetIcon";
 import { cn } from "@/lib/utils";
 
 // The dialog starts on the October budget's template, as the app picks the latest budget's.
@@ -76,11 +76,7 @@ const SidebarToggle = () => (
 
 const BudgetGlyph = () => (
   <div className="-ml-2 inline-flex size-12 shrink-0 items-center justify-center rounded-xl">
-    <HugeiconsIcon
-      icon={Luggage01Icon}
-      strokeWidth={1.75}
-      className="size-8 text-foreground"
-    />
+    <BudgetIconGlyph icon="luggage" className="size-8 text-foreground" />
   </div>
 );
 

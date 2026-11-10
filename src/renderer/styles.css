@@ -375,6 +375,14 @@ code {
   }
 }
 
+/* Budget icon pictures shade themselves by mixing their colour with white, so the near-white text
+   of dark mode would leave a flat silhouette. */
+@layer components {
+  .dark .kubai-icon {
+    --ki-c: color-mix(in oklab, currentColor 70%, black);
+  }
+}
+
 /* Onboarding (components/onboarding). A feature slide is exactly one stage tall, so on its view
    timeline 50% is "snapped". Every scroll-linked keyframe rests from 48% to 52%: a snapped slide
    carries no transform, since the demos measure their own layout to steer a cursor. */

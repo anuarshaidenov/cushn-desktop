@@ -15,8 +15,8 @@ describe("ICON_GROUPS", () => {
     for (const name of names) expect(name).toMatch(/^[a-z]+(-[a-z]+)*$/);
   });
 
-  it("uses each glyph and label once", () => {
-    expect(new Set(icons.map((icon) => icon.svg)).size).toBe(icons.length);
+  it("uses each picture and label once", () => {
+    expect(new Set(icons.map((icon) => icon.picture)).size).toBe(icons.length);
     expect(new Set(icons.map((icon) => icon.label)).size).toBe(icons.length);
   });
 });
