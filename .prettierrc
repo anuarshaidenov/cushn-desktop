@@ -1,0 +1,16 @@
+{
+  "plugins": ["prettier-plugin-tailwindcss"],
+  "tailwindStylesheet": "./src/renderer/styles.css",
+  "overrides": [
+    {
+      "files": [
+        "src/main/**",
+        "src/preload/**",
+        "src/relay/**",
+        "src/shared/**",
+        "*.config.*"
+      ],
+      "options": { "printWidth": 100 }
+    }
+  ]
+}

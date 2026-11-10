@@ -1,0 +1,7 @@
+# electron-builder packages node_modules as-is; a flat layout avoids pnpm symlink issues.
+nodeLinker: hoisted
+
+onlyBuiltDependencies:
+  - better-sqlite3
+  - electron
+  - esbuild

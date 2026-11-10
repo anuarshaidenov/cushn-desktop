@@ -1,0 +1,6 @@
+out/
+drizzle/
+pnpm-lock.yaml
+src/renderer/routeTree.gen.ts
+*.md
+build/icon.icon/

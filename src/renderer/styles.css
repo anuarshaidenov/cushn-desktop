@@ -1,0 +1,497 @@
+@import "tailwindcss";
+@import "tw-animate-css";
+@plugin "@tailwindcss/typography";
+
+@custom-variant dark (&:is(.dark *));
+/* macOS blurs the desktop behind the window (src/main/index.ts). With `vibrant` on <html>
+   (lib/sidebarTransparency.ts) the page is transparent and `vibrant:bg-transparent` surfaces let
+   the blur through. Reduce Transparency, or a Chromium without the query, keeps them solid. */
+@custom-variant vibrant {
+  @media (prefers-reduced-transparency: no-preference) {
+    &:is(.vibrant *) {
+      @slot;
+    }
+  }
+}
+
+/* Unlayered, to outrank index.html's `html`. */
+@media (prefers-reduced-transparency: no-preference) {
+  html.vibrant,
+  .vibrant body {
+    background: transparent;
+  }
+}
+
+/* While the preference switches, the sidebar crossfades in step with the Switch's track. */
+html.vibrant-fade,
+.vibrant-fade body,
+.vibrant-fade [data-slot="sidebar-wrapper"],
+.vibrant-fade [data-slot="sidebar-inner"] {
+  @apply transition-[background-color] duration-200 ease-out-quint;
+}
+
+body {
+  @apply m-0 h-dvh overflow-hidden;
+  font-family:
+    -apple-system, BlinkMacSystemFont, "Segoe UI", "Roboto", "Oxygen", "Ubuntu",
+    "Cantarell", "Fira Sans", "Droid Sans", "Helvetica Neue", sans-serif;
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+}
+
+code {
+  font-family:
+    source-code-pro, Menlo, Monaco, Consolas, "Courier New", monospace;
+}
+
+@keyframes logo-wing-wiggle-y {
+  0%,
+  100% {
+    transform: translateY(calc(-1 * var(--logo-wing-wiggle, 2px)));
+  }
+  50% {
+    transform: translateY(var(--logo-wing-wiggle, 2px));
+  }
+}
+
+/* macOS has no title bar (src/main/index.ts): the top header rows drag the
+   window and their controls (and the `::after` hit areas around them) stay
+   clickable. Their height centres them on the traffic lights;
+   `pl-[env(titlebar-area-x,…)]` clears the lights. */
+@utility app-drag {
+  -webkit-app-region: drag;
+
+  & :is(a, button, input, select, textarea, [role="button"]),
+  & :is(a, button, [role="button"])::after,
+  & [data-slot="input-group"] {
+    -webkit-app-region: no-drag;
+  }
+}
+
+@theme inline {
+  --radius-sm: calc(var(--radius) - 4px);
+  --radius-md: calc(var(--radius) - 2px);
+  --radius-lg: var(--radius);
+  --radius-xl: calc(var(--radius) + 4px);
+  --color-background: var(--background);
+  --color-foreground: var(--foreground);
+  --color-card: var(--card);
+  --color-card-foreground: var(--card-foreground);
+  --color-popover: var(--popover);
+  --color-popover-foreground: var(--popover-foreground);
+  --color-primary: var(--primary);
+  --color-primary-foreground: var(--primary-foreground);
+  --color-secondary: var(--secondary);
+  --color-secondary-foreground: var(--secondary-foreground);
+  --color-muted: var(--muted);
+  --color-muted-foreground: var(--muted-foreground);
+  --color-accent: var(--accent);
+  --color-accent-foreground: var(--accent-foreground);
+  --color-destructive: var(--destructive);
+  --color-border: var(--border);
+  --color-input: var(--input);
+  --color-ring: var(--ring);
+  --color-chart-1: var(--chart-1);
+  --color-chart-2: var(--chart-2);
+  --color-chart-3: var(--chart-3);
+  --color-chart-4: var(--chart-4);
+  --color-chart-5: var(--chart-5);
+  --color-chart-6: var(--chart-6);
+  --color-chart-7: var(--chart-7);
+  --color-chart-8: var(--chart-8);
+  --color-chart-other: var(--chart-other);
+  --color-sidebar: var(--sidebar);
+  --color-sidebar-foreground: var(--sidebar-foreground);
+  --color-sidebar-primary: var(--sidebar-primary);
+  --color-sidebar-primary-foreground: var(--sidebar-primary-foreground);
+  --color-sidebar-accent: var(--sidebar-accent);
+  --color-sidebar-accent-foreground: var(--sidebar-accent-foreground);
+  --color-sidebar-border: var(--sidebar-border);
+  --color-sidebar-ring: var(--sidebar-ring);
+
+  --animate-logo-wing: logo-wing-wiggle-y 0.85s ease-in-out infinite;
+
+  /* The built-in ease-out is too weak to read as a reaction; this one snaps. */
+  --ease-out-quint: cubic-bezier(0.23, 1, 0.32, 1);
+  /* Bare `transition-*` utilities default to it too, instead of Tailwind's ease-in-out. */
+  --default-transition-timing-function: cubic-bezier(0.23, 1, 0.32, 1);
+}
+
+:root {
+  --radius: 0.625rem;
+
+  /* Base */
+  --background: oklch(0.985 0.005 257);
+  --foreground: oklch(0.14 0.012 257);
+
+  /* Cards & surfaces */
+  --card: oklch(1 0 0);
+  --card-foreground: oklch(0.14 0.012 257);
+
+  /* Elevation — cards read as raised surfaces instead of outlined boxes */
+  --custom-shadow:
+    0 0 0 1px oklch(0.14 0.012 257 / 4%),
+    0 1px 2px -1px oklch(0.14 0.012 257 / 6%),
+    0 3px 6px -3px oklch(0.14 0.012 257 / 6%),
+    0 8px 20px -8px oklch(0.14 0.012 257 / 8%);
+  --custom-shadow-raised:
+    0 0 0 1px oklch(0.14 0.012 257 / 5%),
+    0 2px 4px -2px oklch(0.14 0.012 257 / 7%),
+    0 6px 12px -4px oklch(0.14 0.012 257 / 8%),
+    0 16px 32px -12px oklch(0.14 0.012 257 / 10%);
+
+  /* Controls carry no border — a hairline ring plus a soft drop is the edge */
+  --custom-shadow-control:
+    0 0 0 1px oklch(0.14 0.012 257 / 8%),
+    0 1px 2px -1px oklch(0.14 0.012 257 / 10%),
+    0 2px 4px -2px oklch(0.14 0.012 257 / 6%);
+  /* Filled controls take a top highlight instead, so they read as lit from above */
+  --custom-shadow-control-solid:
+    inset 0 1px 0 0 oklch(1 0 0 / 14%),
+    0 1px 2px -1px oklch(0.14 0.012 257 / 28%),
+    0 2px 6px -2px oklch(0.14 0.012 257 / 18%);
+  /* Invalid fields swap the hairline for the destructive colour and keep the drop */
+  --custom-shadow-control-invalid:
+    0 0 0 1px var(--destructive), 0 1px 2px -1px oklch(0.14 0.012 257 / 10%),
+    0 2px 4px -2px oklch(0.14 0.012 257 / 6%);
+
+  /* Floating layers — the further off the page, the longer and softer the drop */
+  --custom-shadow-popover:
+    0 0 0 1px oklch(0.14 0.012 257 / 6%),
+    0 2px 4px -2px oklch(0.14 0.012 257 / 8%),
+    0 8px 16px -6px oklch(0.14 0.012 257 / 10%),
+    0 20px 40px -12px oklch(0.14 0.012 257 / 14%);
+  --custom-shadow-overlay:
+    0 0 0 1px oklch(0.14 0.012 257 / 6%),
+    0 4px 8px -4px oklch(0.14 0.012 257 / 10%),
+    0 16px 32px -8px oklch(0.14 0.012 257 / 14%),
+    0 48px 96px -24px oklch(0.14 0.012 257 / 22%);
+
+  --popover: oklch(0.985 0.005 257);
+  --popover-foreground: oklch(0.14 0.012 257);
+
+  /* Brand */
+  --primary: oklch(0.603 0.218 257.4);
+  --primary-foreground: oklch(0.985 0.005 257);
+
+  /* Supporting */
+  --secondary: oklch(0.92 0.012 257);
+  --secondary-foreground: oklch(0.22 0.018 257);
+
+  --muted: oklch(0.92 0.01 257);
+  --muted-foreground: oklch(0.48 0.014 257);
+
+  --accent: oklch(0.94 0.014 257);
+  --accent-foreground: oklch(0.22 0.018 257);
+
+  --destructive: oklch(0.62 0.23 22);
+
+  /* UI chrome */
+  --border: oklch(0.88 0.006 257);
+  --input: oklch(0.88 0.006 257);
+  --ring: oklch(0.603 0.218 257.4);
+
+  /* Charts — categorical, in this order: neighbours (and 8 → 1) stay apart under colour-blindness */
+  --chart-1: oklch(0.56 0.2 257);
+  --chart-2: oklch(0.67 0.175 50);
+  --chart-3: oklch(0.58 0.105 180);
+  --chart-4: oklch(0.76 0.155 82);
+  --chart-5: oklch(0.65 0.2 355);
+  --chart-6: oklch(0.56 0.17 142);
+  --chart-7: oklch(0.5 0.18 305);
+  --chart-8: oklch(0.58 0.2 25);
+  --chart-other: oklch(0.8 0.012 257);
+
+  /* Sidebar */
+  --sidebar: oklch(0.975 0.008 257);
+  --sidebar-foreground: oklch(0.14 0.012 257);
+  --sidebar-primary: oklch(0.603 0.218 257.4);
+  --sidebar-primary-foreground: oklch(0.985 0.005 257);
+  --sidebar-accent: oklch(0.92 0.012 257);
+  --sidebar-accent-foreground: oklch(0.22 0.018 257);
+  --sidebar-border: oklch(0.88 0.006 257);
+  --sidebar-ring: oklch(0.603 0.218 257.4);
+}
+
+.dark {
+  /* Base */
+  --background: oklch(0.146 0.005 257);
+  --foreground: oklch(0.985 0.005 257);
+
+  /* Cards / surfaces */
+  --card: oklch(0.184 0.007 257);
+  --card-foreground: oklch(0.985 0.005 257);
+
+  /* Shadows barely register on dark, so a hairline ring carries the edge */
+  --custom-shadow:
+    0 0 0 1px oklch(0.985 0.005 257 / 5%), 0 1px 2px -1px oklch(0 0 0 / 40%),
+    0 4px 12px -6px oklch(0 0 0 / 45%);
+  --custom-shadow-raised:
+    0 0 0 1px oklch(0.985 0.005 257 / 9%), 0 2px 4px -2px oklch(0 0 0 / 45%),
+    0 10px 24px -10px oklch(0 0 0 / 55%);
+
+  --custom-shadow-control:
+    0 0 0 1px oklch(0.985 0.005 257 / 8%), 0 1px 2px -1px oklch(0 0 0 / 45%);
+  --custom-shadow-control-solid:
+    inset 0 1px 0 0 oklch(1 0 0 / 12%), 0 1px 2px -1px oklch(0 0 0 / 55%);
+  --custom-shadow-control-invalid:
+    0 0 0 1px var(--destructive), 0 1px 2px -1px oklch(0 0 0 / 45%);
+
+  /* Floating layers take a brighter ring and a lit top edge; on dark the drop is only a halo */
+  --custom-shadow-popover:
+    inset 0 1px 0 0 oklch(1 0 0 / 5%), 0 0 0 1px oklch(0.985 0.005 257 / 10%),
+    0 2px 4px -2px oklch(0 0 0 / 50%), 0 12px 28px -10px oklch(0 0 0 / 60%);
+  --custom-shadow-overlay:
+    inset 0 1px 0 0 oklch(1 0 0 / 5%), 0 0 0 1px oklch(0.985 0.005 257 / 10%),
+    0 8px 16px -6px oklch(0 0 0 / 55%), 0 32px 64px -16px oklch(0 0 0 / 70%);
+
+  --popover: oklch(0.169 0.006 257);
+  --popover-foreground: oklch(0.985 0.005 257);
+
+  /* Brand */
+  --primary: oklch(0.624 0.206 255.5);
+  --primary-foreground: oklch(0.985 0.005 257);
+
+  /* Supporting */
+  --secondary: oklch(0.32 0.016 257);
+  --secondary-foreground: oklch(0.985 0.005 257);
+
+  --muted: oklch(0.32 0.014 257);
+  --muted-foreground: oklch(0.7 0.012 257);
+
+  --accent: oklch(0.46 0.025 257 / 0.2);
+  --accent-foreground: oklch(0.985 0.005 257);
+
+  --destructive: oklch(0.68 0.22 25);
+
+  /* UI chrome */
+  --border: oklch(0.985 0.005 257 / 12%);
+  --input: oklch(0.985 0.005 257 / 18%);
+  --ring: oklch(0.624 0.206 255.5);
+
+  /* Charts — same hues, stepped for the dark card */
+  --chart-1: oklch(0.62 0.19 256);
+  --chart-2: oklch(0.66 0.17 50);
+  --chart-3: oklch(0.6 0.105 180);
+  --chart-4: oklch(0.67 0.135 82);
+  --chart-5: oklch(0.62 0.19 355);
+  --chart-6: oklch(0.58 0.16 142);
+  --chart-7: oklch(0.52 0.17 305);
+  --chart-8: oklch(0.58 0.19 25);
+  --chart-other: oklch(0.42 0.012 257);
+
+  /* Sidebar */
+  --sidebar: oklch(0.169 0.006 257);
+  --sidebar-foreground: oklch(0.985 0.005 257);
+  --sidebar-primary: oklch(0.624 0.206 255.5);
+  --sidebar-primary-foreground: oklch(0.985 0.005 257);
+  --sidebar-accent: oklch(0.32 0.016 257);
+  --sidebar-accent-foreground: oklch(0.985 0.005 257);
+  --sidebar-border: oklch(0.985 0.005 257 / 12%);
+  --sidebar-ring: oklch(0.624 0.206 255.5);
+}
+
+@layer base {
+  * {
+    @apply border-border outline-ring/50;
+    scrollbar-width: thin;
+    scrollbar-color: var(--border) transparent;
+  }
+  /* Desktop chrome: only editable text selects, and links and images don't drag out. */
+  body {
+    @apply bg-background text-foreground select-none;
+  }
+  input,
+  textarea,
+  [contenteditable="true"] {
+    @apply select-text;
+  }
+  a,
+  img {
+    -webkit-user-drag: none;
+  }
+  ::-webkit-scrollbar {
+    width: 5px;
+  }
+  ::-webkit-scrollbar-track {
+    background: transparent;
+  }
+  ::-webkit-scrollbar-thumb {
+    background: var(--border);
+    border-radius: 5px;
+  }
+  /* A drag region ignores stacking, so popups over a header must opt out to take clicks. */
+  [data-slot="sidebar-rail"],
+  [data-slot="dialog-overlay"],
+  [data-slot="dialog-content"],
+  [data-slot="sheet-overlay"],
+  [data-slot="sheet-content"],
+  [data-slot="popover-content"],
+  [data-slot="icon-picker-content"],
+  [data-slot="dropdown-menu-content"],
+  [data-slot="dropdown-menu-sub-content"],
+  [data-slot="select-content"] {
+    -webkit-app-region: no-drag;
+  }
+}
+
+.tiptap p.is-editor-empty:first-child::before {
+  color: #adb5bd;
+  content: attr(data-placeholder);
+  float: left;
+  height: 0;
+  pointer-events: none;
+}
+
+@layer components {
+  .shape-waves {
+    position: relative;
+    width: 100%;
+    height: 100%;
+    overflow: hidden;
+    pointer-events: none;
+    isolation: isolate;
+  }
+
+  .shape-waves__canvas {
+    position: absolute;
+    inset: 0;
+    display: block;
+    width: 100%;
+    height: 100%;
+    opacity: 0;
+    transition: opacity 600ms cubic-bezier(0.22, 1, 0.36, 1);
+    pointer-events: none;
+  }
+
+  .shape-waves[data-ready="true"] .shape-waves__canvas {
+    opacity: 1;
+  }
+
+  @media (prefers-reduced-motion: reduce) {
+    .shape-waves__canvas {
+      transition: none;
+    }
+  }
+}
+
+/* Onboarding (components/onboarding). A feature slide is exactly one stage tall, so on its view
+   timeline 50% is "snapped". Every scroll-linked keyframe rests from 48% to 52%: a snapped slide
+   carries no transform, since the demos measure their own layout to steer a cursor. */
+@layer components {
+  .onboarding-slide {
+    container-type: size;
+    view-timeline: --onboarding-slide block;
+  }
+
+  /* Longhands: the build expands the shorthand with a 0s duration, which collapses a scroll timeline. */
+  @media (prefers-reduced-motion: no-preference) {
+    .onboarding-slide-copy,
+    .onboarding-slide-demo {
+      animation-duration: auto;
+      animation-timing-function: linear;
+      animation-fill-mode: both;
+      animation-timeline: --onboarding-slide;
+    }
+
+    /* The copy travels at ~70% of the scroll, so it reads as further back than the window. */
+    .onboarding-slide-copy {
+      animation-name: onboarding-copy-drift, onboarding-copy-fade;
+    }
+
+    /* The incoming window rides the finger; the outgoing one lags, shrinks and dims beneath it. */
+    .onboarding-slide-demo {
+      transform-origin: 50% 0;
+      animation-name: onboarding-demo-recede, onboarding-demo-fade;
+    }
+
+    .onboarding-rise {
+      animation: onboarding-rise 720ms --theme(--ease-out-quint) backwards;
+      animation-delay: var(--rise-delay, 0ms);
+    }
+
+    .onboarding-leave {
+      animation: onboarding-leave 380ms --theme(--ease-out-quint) forwards;
+    }
+
+    .onboarding-wipe {
+      animation: onboarding-wipe 900ms --theme(--ease-out-quint) backwards;
+      animation-delay: var(--wipe-delay, 0ms);
+    }
+  }
+}
+
+@keyframes onboarding-copy-drift {
+  0% {
+    transform: translateY(-28cqh);
+  }
+  48%,
+  52% {
+    transform: none;
+  }
+  100% {
+    transform: translateY(28cqh);
+  }
+}
+
+@keyframes onboarding-copy-fade {
+  0%,
+  22% {
+    opacity: 0;
+  }
+  46%,
+  54% {
+    opacity: 1;
+  }
+  78%,
+  100% {
+    opacity: 0;
+  }
+}
+
+@keyframes onboarding-demo-recede {
+  0%,
+  52% {
+    transform: none;
+  }
+  100% {
+    transform: translateY(40cqh) scale(0.9);
+  }
+}
+
+@keyframes onboarding-demo-fade {
+  0% {
+    opacity: 0;
+  }
+  16%,
+  54% {
+    opacity: 1;
+  }
+  92%,
+  100% {
+    opacity: 0;
+  }
+}
+
+@keyframes onboarding-rise {
+  from {
+    opacity: 0;
+    transform: translateY(calc(var(--rise-distance, 16px) * var(--stage-direction, 1)));
+  }
+}
+
+@keyframes onboarding-leave {
+  to {
+    opacity: 0;
+    transform: translateY(calc(-40px * var(--stage-direction, 1)));
+  }
+}
+
+@keyframes onboarding-wipe {
+  from {
+    clip-path: inset(0 100% 0 0);
+  }
+  to {
+    clip-path: inset(0);
+  }
+}

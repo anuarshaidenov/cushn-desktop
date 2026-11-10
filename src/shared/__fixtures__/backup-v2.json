@@ -1,0 +1,276 @@
+{
+  "format": "cushn-backup",
+  "version": 2,
+  "exportedAt": 1762000000000,
+  "app": {
+    "name": "cushn-desktop",
+    "version": "0.1.0"
+  },
+  "data": {
+    "templates": [
+      {
+        "id": "7e1c0b2a-1f00-4a00-8000-000000000001",
+        "name": "50/30/20",
+        "description": "A classic budgeting rule: 50% Needs, 30% Wants, 20% Savings.",
+        "isDefault": true,
+        "createdAt": 1760000000005
+      },
+      {
+        "id": "7e1c0b2a-1f00-4a00-8000-000000000002",
+        "name": "Travel split",
+        "description": null,
+        "isDefault": false,
+        "createdAt": 1760000100000
+      }
+    ],
+    "templateCategories": [
+      {
+        "id": "c47e9015-2f00-4a00-8000-000000000001",
+        "templateId": "7e1c0b2a-1f00-4a00-8000-000000000001",
+        "name": "Needs",
+        "percentage": 50,
+        "sortOrder": 1,
+        "description": "Essential expenses like rent, groceries, utilities, and transportation",
+        "editable": true
+      },
+      {
+        "id": "c47e9015-2f00-4a00-8000-000000000002",
+        "templateId": "7e1c0b2a-1f00-4a00-8000-000000000001",
+        "name": "Wants",
+        "percentage": 30,
+        "sortOrder": 2,
+        "description": "Discretionary spending on entertainment, dining out, and hobbies",
+        "editable": true
+      },
+      {
+        "id": "c47e9015-2f00-4a00-8000-000000000003",
+        "templateId": "7e1c0b2a-1f00-4a00-8000-000000000001",
+        "name": "Savings",
+        "percentage": 20,
+        "sortOrder": 3,
+        "description": "Emergency fund, retirement savings, and financial goals",
+        "editable": false
+      },
+      {
+        "id": "c47e9015-2f00-4a00-8000-000000000004",
+        "templateId": "7e1c0b2a-1f00-4a00-8000-000000000002",
+        "name": "Tickets",
+        "percentage": 33.4,
+        "sortOrder": 1,
+        "description": null,
+        "editable": true
+      },
+      {
+        "id": "c47e9015-2f00-4a00-8000-000000000005",
+        "templateId": "7e1c0b2a-1f00-4a00-8000-000000000002",
+        "name": "Stay",
+        "percentage": 66.6,
+        "sortOrder": 2,
+        "description": "Hotels and flats",
+        "editable": true
+      }
+    ],
+    "budgetLabels": [
+      {
+        "id": "1abe1000-3f00-4a00-8000-000000000001",
+        "name": "Monthly",
+        "color": "#F97316",
+        "createdAt": 1760000000000
+      },
+      {
+        "id": "1abe1000-3f00-4a00-8000-000000000002",
+        "name": "Trips",
+        "color": "#8B5CF6",
+        "createdAt": 1760000200000
+      }
+    ],
+    "budgetViews": [
+      {
+        "id": "f1e30000-4f00-4a00-8000-000000000001",
+        "title": "Home",
+        "description": "Everyday budgets",
+        "isFavorite": true,
+        "createdAt": 1760000300000
+      },
+      {
+        "id": "f1e30000-4f00-4a00-8000-000000000002",
+        "title": "Someday",
+        "description": null,
+        "isFavorite": false,
+        "createdAt": 1760000400000
+      }
+    ],
+    "budgets": [
+      {
+        "id": "b0d9e700-5f00-4a00-8000-000000000001",
+        "title": "October at home",
+        "description": "## Plan\n\nPay rent **first**.",
+        "templateId": "7e1c0b2a-1f00-4a00-8000-000000000001",
+        "income": 5000,
+        "status": "active",
+        "currency": "usd",
+        "labelId": "1abe1000-3f00-4a00-8000-000000000001",
+        "viewId": "f1e30000-4f00-4a00-8000-000000000001",
+        "icon": "home",
+        "createdAt": 1760000500000
+      },
+      {
+        "id": "b0d9e700-5f00-4a00-8000-000000000002",
+        "title": "Отпуск в Алматы",
+        "description": null,
+        "templateId": "7e1c0b2a-1f00-4a00-8000-000000000002",
+        "income": 333.33,
+        "status": "active",
+        "currency": "kzt",
+        "labelId": "1abe1000-3f00-4a00-8000-000000000002",
+        "viewId": null,
+        "icon": "flights",
+        "createdAt": 1760000600000
+      },
+      {
+        "id": "b0d9e700-5f00-4a00-8000-000000000003",
+        "title": "Old plan",
+        "description": null,
+        "templateId": null,
+        "income": 1200.5,
+        "status": "archived",
+        "currency": "eur",
+        "labelId": null,
+        "viewId": "f1e30000-4f00-4a00-8000-000000000002",
+        "icon": null,
+        "createdAt": 1760000700000
+      }
+    ],
+    "budgetAllocations": [
+      {
+        "id": "a110c000-6f00-4a00-8000-000000000001",
+        "budgetId": "b0d9e700-5f00-4a00-8000-000000000001",
+        "categoryName": "Needs",
+        "percentage": 50,
+        "amount": 2500,
+        "description": "Essential expenses like rent, groceries, utilities, and transportation",
+        "editable": true,
+        "sortOrder": 1,
+        "createdAt": 1760000500001
+      },
+      {
+        "id": "a110c000-6f00-4a00-8000-000000000002",
+        "budgetId": "b0d9e700-5f00-4a00-8000-000000000001",
+        "categoryName": "Wants",
+        "percentage": 30,
+        "amount": 1500,
+        "description": "Discretionary spending on entertainment, dining out, and hobbies",
+        "editable": true,
+        "sortOrder": 2,
+        "createdAt": 1760000500002
+      },
+      {
+        "id": "a110c000-6f00-4a00-8000-000000000003",
+        "budgetId": "b0d9e700-5f00-4a00-8000-000000000001",
+        "categoryName": "Savings",
+        "percentage": 20,
+        "amount": 1000,
+        "description": "Emergency fund, retirement savings, and financial goals",
+        "editable": false,
+        "sortOrder": 3,
+        "createdAt": 1760000500003
+      },
+      {
+        "id": "a110c000-6f00-4a00-8000-000000000004",
+        "budgetId": "b0d9e700-5f00-4a00-8000-000000000002",
+        "categoryName": "Tickets",
+        "percentage": 33.4,
+        "amount": 111.33,
+        "description": null,
+        "editable": true,
+        "sortOrder": 1,
+        "createdAt": 1760000600001
+      },
+      {
+        "id": "a110c000-6f00-4a00-8000-000000000005",
+        "budgetId": "b0d9e700-5f00-4a00-8000-000000000002",
+        "categoryName": "Stay",
+        "percentage": 66.6,
+        "amount": 222,
+        "description": "Hotels and flats",
+        "editable": true,
+        "sortOrder": 2,
+        "createdAt": 1760000600002
+      },
+      {
+        "id": "a110c000-6f00-4a00-8000-000000000006",
+        "budgetId": "b0d9e700-5f00-4a00-8000-000000000003",
+        "categoryName": "Everything",
+        "percentage": 100,
+        "amount": 1200.5,
+        "description": null,
+        "editable": true,
+        "sortOrder": 1,
+        "createdAt": 1760000700001
+      }
+    ],
+    "expenses": [
+      {
+        "id": "e0e0e000-7f00-4a00-8000-000000000001",
+        "budgetId": "b0d9e700-5f00-4a00-8000-000000000001",
+        "allocationId": "a110c000-6f00-4a00-8000-000000000001",
+        "title": "Rent",
+        "amount": 600,
+        "description": "Rent for the month",
+        "order": 0,
+        "checked": false,
+        "createdAt": 1760000500010
+      },
+      {
+        "id": "e0e0e000-7f00-4a00-8000-000000000002",
+        "budgetId": "b0d9e700-5f00-4a00-8000-000000000001",
+        "allocationId": "a110c000-6f00-4a00-8000-000000000001",
+        "title": "Groceries",
+        "amount": 212.47,
+        "description": null,
+        "order": 1,
+        "checked": true,
+        "createdAt": 1760000500011
+      },
+      {
+        "id": "e0e0e000-7f00-4a00-8000-000000000003",
+        "budgetId": "b0d9e700-5f00-4a00-8000-000000000001",
+        "allocationId": "a110c000-6f00-4a00-8000-000000000002",
+        "title": "Cinema",
+        "amount": 25.5,
+        "description": null,
+        "order": 0,
+        "checked": false,
+        "createdAt": 1760000500012
+      },
+      {
+        "id": "e0e0e000-7f00-4a00-8000-000000000004",
+        "budgetId": "b0d9e700-5f00-4a00-8000-000000000002",
+        "allocationId": "a110c000-6f00-4a00-8000-000000000004",
+        "title": "Билеты на поезд",
+        "amount": 80,
+        "description": "Туда и обратно",
+        "order": 0,
+        "checked": false,
+        "createdAt": 1760000600010
+      },
+      {
+        "id": "e0e0e000-7f00-4a00-8000-000000000005",
+        "budgetId": "b0d9e700-5f00-4a00-8000-000000000003",
+        "allocationId": "a110c000-6f00-4a00-8000-000000000006",
+        "title": "Old expense",
+        "amount": 99.99,
+        "description": null,
+        "order": 0,
+        "checked": false,
+        "createdAt": 1760000700010
+      }
+    ],
+    "userSettings": {
+      "currency": "kzt",
+      "budgetView": "list",
+      "language": null,
+      "darkMode": true
+    }
+  }
+}

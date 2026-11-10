@@ -1,0 +1,68 @@
+appId: kz.cushn.desktop
+productName: Cushn
+copyright: Copyright © 2026 Anuar Shaidenov
+directories:
+  buildResources: build
+  output: release/${version}
+files:
+  - out/**
+  - package.json
+  - LICENSE
+  - TRADEMARKS.md
+  - "!**/*.{map,ts,tsx}"
+  # SQLite's C sources: the app loads one of better-sqlite3's prebuilds.
+  - "!node_modules/better-sqlite3/{deps,src}/**"
+asarUnpack:
+  - node_modules/better-sqlite3/**
+  - "**/*.node"
+  # The MCP relay: `~/.cushn/bin/cushn-mcp` runs the app's binary on it with `ELECTRON_RUN_AS_NODE=1`
+  # (`src/main/agents/launcher.ts`). That needs the RunAsNode fuse left on, Electron's default:
+  # never turn it off in `electronFuses`.
+  - out/relay/**
+mac:
+  category: public.app-category.finance
+  # Icon Composer file, compiled by Xcode 26's `actool` (also emits the .icns for older macOS).
+  # Windows and Linux use the default `build/icon.png`.
+  icon: icon.icon
+  # Added to `files`: only macOS prebuilds, so nothing else gets signed and shipped.
+  files:
+    - "!node_modules/better-sqlite3/prebuilds/{linux,linuxmusl,win32}-*.node"
+  # Two builds, not universal, from one run, so `latest-mac.yml` lists both zips. Signing keeps
+  # the defaults: hardened runtime and electron-builder's entitlements (JIT, no library validation).
+  target:
+    - target: dmg
+      arch: [arm64, x64]
+    - target: zip
+      arch: [arm64, x64]
+dmg:
+  # No version: the website links to `releases/latest/download/` + this name.
+  artifactName: ${productName}-${arch}.${ext}
+win:
+  target:
+    - nsis
+nsis:
+  artifactName: ${productName}-${version}-setup.${ext}
+  oneClick: false
+  allowToChangeInstallationDirectory: true
+linux:
+  category: Office
+  target:
+    - AppImage
+appImage:
+  artifactName: ${productName}-${version}.${ext}
+npmRebuild: true
+# Where `electron-updater` looks for updates (`src/main/updater.ts`). electron-builder writes
+# `app-update.yml` from this into the app, and `--publish always` uploads the installers and the
+# `latest*.yml` feeds to a GitHub release. The updater reads it without a token, so the repo must
+# be public. macOS installs updates only into a signed app.
+publish:
+  provider: github
+  owner: anuarshaidenov
+  repo: cushn-desktop
+# SQL migrations, applied at startup from `process.resourcesPath/drizzle`.
+extraResources:
+  - from: drizzle
+    to: drizzle
+    filter:
+      - "*.sql"
+      - meta/_journal.json

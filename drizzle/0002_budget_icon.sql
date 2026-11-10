@@ -1,0 +1,1 @@
+ALTER TABLE `budgets` ADD `icon` text;

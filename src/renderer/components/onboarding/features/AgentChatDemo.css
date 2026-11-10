@@ -1,0 +1,672 @@
+/* The Claude & Codex demo. The window is another app, so its neutrals lean warm; the clay is Claude's. */
+
+/* The window is laid out at 1.25× the box and scaled into it, so the whole story fits a ~540×520 box. */
+.agent-chat-demo .acd-stage {
+  --acd-scale: 0.8;
+  position: absolute;
+  top: 0;
+  left: 0;
+  width: calc(100% / var(--acd-scale));
+  height: calc(100% / var(--acd-scale));
+  transform: scale(var(--acd-scale));
+  transform-origin: 0 0;
+}
+
+.agent-chat-app {
+  --acd-frame: oklch(15.6% 0.004 75);
+  --acd-panel: oklch(18.4% 0.0045 75);
+  --acd-raised: oklch(22.4% 0.005 75);
+  --acd-bubble: oklch(26% 0.0055 75);
+  --acd-fg: oklch(96% 0.005 85);
+  --acd-text: oklch(89% 0.006 85);
+  --acd-muted: oklch(69% 0.008 80);
+  --acd-faint: oklch(55% 0.008 80);
+  --acd-line: oklch(100% 0 0 / 0.085);
+  --acd-line-strong: oklch(100% 0 0 / 0.14);
+  --acd-clay: #d97757;
+  /* The landing's dark window edge: a hairline, a faint white halo, then the drop. */
+  --acd-chrome:
+    0 0 0 1px oklch(1 0 0 / 0.08), 0 0 32px -4px oklch(1 0 0 / 0.05),
+    0 2px 4px oklch(0 0 0 / 0.2), 0 8px 16px -4px oklch(0 0 0 / 0.3),
+    0 32px 64px -16px oklch(0 0 0 / 0.5);
+  --acd-sans:
+    -apple-system, BlinkMacSystemFont, "Segoe UI", "Helvetica Neue", sans-serif;
+  --acd-serif: ui-serif, "New York", "Iowan Old Style", Georgia, serif;
+  --acd-mono: ui-monospace, "SF Mono", Menlo, monospace;
+
+  color: var(--acd-fg);
+  font-family: var(--acd-sans);
+}
+
+.agent-chat-app .acd-frame {
+  background: var(--acd-frame);
+}
+
+.agent-chat-app .acd-panel {
+  background: var(--acd-panel);
+  box-shadow: var(--custom-shadow-raised);
+}
+
+.agent-chat-app .acd-titlebar {
+  display: flex;
+  flex: none;
+  align-items: center;
+  justify-content: center;
+  height: 44px;
+  padding: 0 84px;
+}
+
+.agent-chat-app .acd-title {
+  overflow: hidden;
+  color: var(--acd-muted);
+  font-size: 13px;
+  font-weight: 500;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+/* A viewport over a column pinned to its foot: a long conversation shows its end, older turns fading under the title bar. */
+.agent-chat-app .acd-thread {
+  position: relative;
+  display: flex;
+  flex: 1;
+  flex-direction: column;
+  justify-content: flex-end;
+  min-height: 0;
+  overflow: hidden;
+  mask-image: linear-gradient(to bottom, transparent, #000 22px);
+}
+
+.agent-chat-app .acd-inner {
+  flex: none;
+  min-height: 100%;
+  will-change: transform;
+}
+
+.agent-chat-app .acd-col {
+  display: flex;
+  flex-direction: column;
+  max-width: 600px;
+  margin: 0 auto;
+  padding: 16px 20px 20px;
+}
+
+@container (min-width: 480px) {
+  .agent-chat-app .acd-col {
+    padding: 20px 32px 24px;
+  }
+}
+
+.agent-chat-app .acd-user {
+  display: flex;
+  justify-content: flex-end;
+}
+
+.agent-chat-app .acd-user + .acd-reply {
+  margin-top: 18px;
+}
+
+.agent-chat-app .acd-reply + .acd-user {
+  margin-top: 28px;
+}
+
+.agent-chat-app .acd-bubble {
+  max-width: calc(100% - 24px);
+  padding: 8px 14px;
+  border-radius: 18px;
+  background: var(--acd-bubble);
+  color: var(--acd-fg);
+  font-size: 16px;
+  line-height: 24px;
+  text-wrap: pretty;
+}
+
+.agent-chat-app [data-bubble-text] {
+  display: inline-block;
+}
+
+.agent-chat-app .acd-reply {
+  display: grid;
+  grid-template-columns: 22px minmax(0, 1fr);
+  column-gap: 12px;
+}
+
+.agent-chat-app .acd-avatar {
+  display: grid;
+  place-items: center;
+  width: 22px;
+  height: 22px;
+  margin-top: 3px;
+  border-radius: 6px;
+  background: var(--acd-clay);
+  box-shadow: var(--custom-shadow-control-solid);
+  color: #fff;
+}
+
+.agent-chat-app .acd-avatar svg {
+  width: 13px;
+  height: 13px;
+}
+
+.agent-chat-app .acd-reply__body {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  min-width: 0;
+}
+
+.agent-chat-app .acd-tools {
+  display: flex;
+  flex-direction: column;
+}
+
+.agent-chat-app .acd-tool {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  height: 28px;
+  color: var(--acd-muted);
+  font-size: 13px;
+  white-space: nowrap;
+}
+
+.agent-chat-app .acd-tool__dot {
+  margin: 0 -2px;
+  color: var(--acd-faint);
+}
+
+.agent-chat-app .acd-tool__name {
+  overflow: hidden;
+  color: var(--acd-text);
+  font-family: var(--acd-mono);
+  font-size: 12px;
+  text-overflow: ellipsis;
+}
+
+/* One mark from pending to done: a turning arc, then a disc grows under it and the tick draws. */
+.agent-chat-app .acd-status {
+  display: grid;
+  flex: none;
+  width: 16px;
+  height: 16px;
+}
+
+.agent-chat-app .acd-status svg {
+  width: 16px;
+  height: 16px;
+  overflow: visible;
+}
+
+.agent-chat-app .acd-status__track {
+  stroke: var(--acd-line-strong);
+  stroke-width: 1.75;
+  transition: opacity 160ms ease-out;
+}
+
+.agent-chat-app .acd-status__arc {
+  stroke: var(--acd-text);
+  stroke-width: 1.75;
+  stroke-linecap: round;
+  stroke-dasharray: 28 100;
+  transform-origin: 8px 8px;
+  animation: acd-spin 0.8s linear infinite;
+  transition: opacity 160ms ease-out;
+}
+
+.agent-chat-app .acd-status__disc {
+  fill: oklch(100% 0 0 / 0.13);
+  transform-origin: 8px 8px;
+  transition:
+    transform 260ms cubic-bezier(0.23, 1, 0.32, 1),
+    opacity 160ms ease-out;
+}
+
+.agent-chat-app .acd-status__tick {
+  stroke: var(--acd-fg);
+  stroke-width: 1.6;
+  stroke-linecap: round;
+  stroke-linejoin: round;
+  stroke-dasharray: 1;
+  transition: stroke-dashoffset 220ms cubic-bezier(0.23, 1, 0.32, 1) 90ms;
+}
+
+.agent-chat-app [data-state="pending"] .acd-status__disc {
+  opacity: 0;
+  transform: scale(0.5);
+}
+
+.agent-chat-app [data-state="pending"] .acd-status__tick {
+  stroke-dashoffset: 1;
+  transition: none;
+}
+
+.agent-chat-app [data-state="done"] .acd-status__track,
+.agent-chat-app [data-state="done"] .acd-status__arc {
+  opacity: 0;
+}
+
+.agent-chat-app [data-state="done"]:not([data-ran]) .acd-status__arc {
+  animation: none;
+}
+
+@keyframes acd-spin {
+  to {
+    transform: rotate(360deg);
+  }
+}
+
+.agent-chat-app .acd-answer {
+  color: var(--acd-text);
+  font-size: 16px;
+  line-height: 26px;
+  font-variant-numeric: tabular-nums;
+  text-wrap: pretty;
+}
+
+.agent-chat-app .acd-answer > * + * {
+  margin-top: 10px;
+}
+
+.agent-chat-app .acd-answer strong {
+  color: var(--acd-fg);
+  font-weight: 600;
+}
+
+.agent-chat-app .acd-answer ul {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  padding-left: 20px;
+  list-style: disc;
+}
+
+.agent-chat-app .acd-answer li {
+  padding-left: 2px;
+}
+
+.agent-chat-app .acd-answer li::marker {
+  color: var(--acd-faint);
+}
+
+/* The new chat, centred over the conversation's viewport. */
+.agent-chat-app .acd-empty {
+  position: absolute;
+  inset: 0;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 28px;
+  padding: 0 20px 24px;
+}
+
+.agent-chat-app .acd-greeting {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 16px;
+  max-width: 440px;
+  text-align: center;
+}
+
+.agent-chat-app .acd-greeting__mark {
+  display: grid;
+  width: 30px;
+  height: 30px;
+  color: var(--acd-clay);
+}
+
+.agent-chat-app .acd-greeting__mark svg {
+  width: 100%;
+  height: 100%;
+}
+
+.agent-chat-app .acd-greeting__words {
+  color: var(--acd-fg);
+  font-family: var(--acd-serif);
+  font-size: 25px;
+  font-weight: 400;
+  line-height: 1.22;
+  letter-spacing: -0.012em;
+  text-wrap: balance;
+}
+
+@container (min-width: 480px) {
+  .agent-chat-app .acd-greeting__words {
+    font-size: 30px;
+  }
+}
+
+.agent-chat-app .acd-suggestions {
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: center;
+  gap: 8px;
+  max-width: 560px;
+}
+
+/* The same pill as the message it becomes, drawn as an outline. */
+.agent-chat-app .acd-chip {
+  display: inline-flex;
+  align-items: center;
+  gap: 7px;
+  height: 36px;
+  padding: 0 14px 0 12px;
+  border-radius: 18px;
+  box-shadow: inset 0 0 0 1px var(--acd-line-strong);
+  color: var(--acd-text);
+  font-size: 14px;
+  white-space: nowrap;
+  transition:
+    background-color 150ms ease,
+    transform 160ms cubic-bezier(0.23, 1, 0.32, 1);
+}
+
+.agent-chat-app .acd-chip[data-hover] {
+  background: oklch(100% 0 0 / 0.055);
+}
+
+.agent-chat-app .acd-chip[data-pressed] {
+  transform: scale(0.97);
+  transition-duration: 100ms;
+}
+
+.agent-chat-app .acd-chip__icon {
+  flex: none;
+  width: 15px;
+  height: 15px;
+  color: var(--acd-muted);
+}
+
+.agent-chat-app .acd-dock {
+  flex: none;
+  width: 100%;
+  max-width: 600px;
+  margin: 0 auto;
+  padding: 4px 12px 12px;
+}
+
+@container (min-width: 480px) {
+  .agent-chat-app .acd-dock {
+    padding: 4px 20px 18px;
+  }
+}
+
+.agent-chat-app .acd-composer {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  padding: 14px 12px 10px 16px;
+  border-radius: 20px;
+  background: var(--acd-raised);
+  box-shadow:
+    inset 0 0 0 1px var(--acd-line),
+    0 1px 2px oklch(0% 0 0 / 0.25),
+    0 8px 24px -8px oklch(0% 0 0 / 0.45);
+  transition: box-shadow 200ms ease;
+}
+
+.agent-chat-app .acd-composer[data-focused] {
+  box-shadow:
+    inset 0 0 0 1px oklch(100% 0 0 / 0.2),
+    0 1px 2px oklch(0% 0 0 / 0.25),
+    0 8px 24px -8px oklch(0% 0 0 / 0.45);
+}
+
+.agent-chat-app .acd-field {
+  min-height: 24px;
+  overflow: hidden;
+  color: var(--acd-fg);
+  font-size: 16px;
+  line-height: 24px;
+  white-space: nowrap;
+}
+
+.agent-chat-app .acd-placeholder {
+  color: var(--acd-faint);
+}
+
+.agent-chat-app .acd-toolbar {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+}
+
+.agent-chat-app .acd-toolbar__gap {
+  flex: 1;
+}
+
+.agent-chat-app .acd-iconbtn {
+  display: grid;
+  flex: none;
+  place-items: center;
+  width: 30px;
+  height: 30px;
+  margin-left: -4px;
+  border-radius: 999px;
+  box-shadow: inset 0 0 0 1px var(--acd-line-strong);
+  color: var(--acd-muted);
+}
+
+.agent-chat-app .acd-iconbtn svg {
+  width: 16px;
+  height: 16px;
+}
+
+.agent-chat-app .acd-connector {
+  display: inline-flex;
+  flex: none;
+  align-items: center;
+  gap: 6px;
+  height: 30px;
+  padding: 0 11px 0 9px;
+  border-radius: 999px;
+  background: oklch(100% 0 0 / 0.06);
+  color: var(--acd-text);
+  font-size: 13px;
+}
+
+.agent-chat-app .acd-connector__mark {
+  width: 14px;
+  height: 14px;
+}
+
+/* The app's Logo paints its own fill; here it takes the text colour. */
+.agent-chat-app .acd-connector__mark path {
+  fill: currentColor;
+}
+
+.agent-chat-app .acd-connector__on {
+  width: 6px;
+  height: 6px;
+  margin-left: 1px;
+  border-radius: 999px;
+  background: oklch(74% 0.15 150);
+}
+
+.agent-chat-app .acd-provider {
+  display: inline-flex;
+  flex: none;
+  align-items: center;
+  gap: 6px;
+  height: 30px;
+  padding: 0 6px 0 8px;
+  border-radius: 999px;
+  color: var(--acd-text);
+  font-size: 13px;
+}
+
+.agent-chat-app .acd-provider__mark {
+  width: 14px;
+  height: 14px;
+  color: var(--acd-clay);
+}
+
+.agent-chat-app .acd-provider__chevron {
+  width: 14px;
+  height: 14px;
+  margin-left: -2px;
+  color: var(--acd-muted);
+}
+
+/* The one warm accent. Its arrow dims while there's nothing to send. */
+.agent-chat-app .acd-send {
+  display: grid;
+  flex: none;
+  place-items: center;
+  width: 32px;
+  height: 32px;
+  border-radius: 999px;
+  background: var(--acd-clay);
+  box-shadow: var(--custom-shadow-control-solid);
+  color: oklch(100% 0 0 / 0.62);
+  transition:
+    color 180ms ease,
+    transform 160ms cubic-bezier(0.23, 1, 0.32, 1);
+}
+
+.agent-chat-app .acd-send[data-ready] {
+  color: #fff;
+}
+
+.agent-chat-app .acd-send svg {
+  width: 17px;
+  height: 17px;
+}
+
+/* The macOS pointer, placed by the story at its hotspot. */
+.agent-chat-demo .acd-cursor {
+  position: absolute;
+  top: 0;
+  left: 0;
+  z-index: 10;
+  pointer-events: none;
+  opacity: 0;
+  will-change: transform;
+  /* Hides quickly on a keystroke, as macOS does when typing starts. */
+  transition: opacity 120ms ease;
+}
+
+.agent-chat-demo .acd-cursor[data-shown] {
+  opacity: 1;
+  transition-duration: 240ms;
+}
+
+.agent-chat-demo .acd-cursor__press {
+  display: grid;
+  transform-origin: 0 0;
+  transition: transform 260ms cubic-bezier(0.22, 1, 0.36, 1);
+}
+
+.agent-chat-demo .acd-cursor[data-pressed] .acd-cursor__press {
+  transform: scale(0.9);
+  transition-duration: 80ms;
+  transition-timing-function: ease-out;
+}
+
+/* Pointer and I-beam share one spot: the old shape leaves before the new one comes in. */
+.agent-chat-demo .acd-cursor__glyph {
+  grid-area: 1 / 1;
+  opacity: 0;
+  transform: scale(0.6);
+  transition:
+    transform 80ms ease-out,
+    opacity 80ms ease-out;
+}
+
+/* Each glyph is offset so its hotspot (the arrow's tip, the I-beam's middle) sits on 0,0. */
+.agent-chat-demo .acd-cursor__glyph[data-glyph="pointer"] {
+  margin: -5.25px 0 0 -7.5px;
+  transform-origin: 7.5px 5.25px;
+}
+
+.agent-chat-demo .acd-cursor__glyph[data-glyph="ibeam"] {
+  margin: -8px 0 0 -5px;
+  transform-origin: 5px 8px;
+}
+
+.agent-chat-demo .acd-cursor[data-kind="pointer"] [data-glyph="pointer"],
+.agent-chat-demo .acd-cursor[data-kind="ibeam"] [data-glyph="ibeam"] {
+  opacity: 1;
+  transform: scale(1);
+  transition-duration: 140ms;
+  transition-delay: 60ms;
+}
+
+/* A streamed word is in its final place from the start, hidden, then sharpens into view. */
+.agent-chat-demo .acd-w {
+  opacity: 0;
+  filter: blur(3px);
+  transition:
+    opacity 320ms ease,
+    filter 320ms ease;
+}
+
+.agent-chat-demo .acd-w[data-on] {
+  opacity: 1;
+  filter: none;
+}
+
+.agent-chat-demo .acd-answer li:not([data-on])::marker {
+  color: transparent;
+}
+
+.agent-chat-demo .acd-answer li[data-on]::marker {
+  animation: acd-marker-in 320ms ease;
+}
+
+@keyframes acd-marker-in {
+  from {
+    color: transparent;
+  }
+}
+
+/* The answer's height follows the line being written; the words below it aren't shown yet. */
+.agent-chat-demo .acd-answer {
+  overflow: visible;
+}
+
+/* The stand-in bubble that makes the trip, over everything in the panel. */
+.agent-chat-demo .acd-flyer {
+  position: absolute;
+  z-index: 5;
+  max-width: none;
+  margin: 0;
+  background: transparent;
+  transform-origin: 0 0;
+  will-change: transform;
+  pointer-events: none;
+}
+
+/* Chromium's insertion point. It takes no room, so the placeholder doesn't shift. */
+.agent-chat-demo .acd-caret {
+  display: inline-block;
+  width: 1.5px;
+  height: 1.2em;
+  margin-right: -1.5px;
+  vertical-align: -0.22em;
+  border-radius: 1px;
+  background: currentColor;
+  animation: acd-caret-blink 1s step-end infinite;
+}
+
+.agent-chat-demo[data-typing] .acd-caret {
+  animation: none;
+}
+
+@keyframes acd-caret-blink {
+  50% {
+    opacity: 0;
+  }
+}
+
+/* The finished still: nothing fades in. */
+@media (prefers-reduced-motion: reduce) {
+  .agent-chat-demo .acd-w {
+    transition: none;
+  }
+
+  .agent-chat-demo .acd-answer li[data-on]::marker {
+    animation: none;
+  }
+}

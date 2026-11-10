@@ -1,0 +1,75 @@
+.templates-demo {
+  /* The window's own edge on a dark page: a white hairline and halo over a drop shadow. */
+  --custom-shadow-chrome:
+    0 0 0 1px oklch(1 0 0 / 0.08), 0 0 32px -4px oklch(1 0 0 / 0.05),
+    0 2px 4px oklch(0 0 0 / 0.2), 0 8px 16px -4px oklch(0 0 0 / 0.3),
+    0 32px 64px -16px oklch(0 0 0 / 0.5);
+}
+
+/* The window at 640×650, scaled to 512×520: the dialog centres in it, so a shorter window lifts the dialog and its menu into the box. */
+.templates-demo .tpl-stage {
+  position: absolute;
+  top: 0;
+  left: 0;
+  width: 640px;
+  height: 650px;
+  transform: scale(0.8);
+  transform-origin: 0 0;
+}
+
+/* Padded past the window, so the mask that fades its foot doesn't clip its halo. */
+.templates-demo .tpl-fade {
+  --fade: 64px;
+  position: absolute;
+  inset: -48px -48px 0;
+  padding: 48px 48px 0;
+  mask-image: linear-gradient(
+    to bottom,
+    black calc(100% - var(--fade)),
+    rgb(0 0 0 / 0.35) calc(100% - var(--fade) * 0.6),
+    transparent
+  );
+}
+
+/* The macOS pointer, placed by the story at its hotspot. */
+.templates-demo .tpl-cursor {
+  position: absolute;
+  top: 0;
+  left: 0;
+  z-index: 10;
+  pointer-events: none;
+  opacity: 0;
+  will-change: transform;
+  transition: opacity 240ms ease;
+}
+
+.templates-demo .tpl-cursor[data-shown] {
+  opacity: 1;
+}
+
+/* The arrow's tip sits on 0,0, so a press shrinks toward the point clicked, and lets go softly. */
+.templates-demo .tpl-cursor__press {
+  transform-origin: 0 0;
+  transition: transform 260ms cubic-bezier(0.22, 1, 0.36, 1);
+}
+
+.templates-demo .tpl-cursor__press svg {
+  display: block;
+  margin: -5.25px 0 0 -7.5px;
+}
+
+.templates-demo .tpl-cursor[data-pressed] .tpl-cursor__press {
+  transform: scale(0.9);
+  transition-duration: 80ms;
+  transition-timing-function: ease-out;
+}
+
+/* The chip's old words while they blur out, where the new ones start. */
+.templates-demo .tpl-ghost {
+  position: absolute;
+  top: 50%;
+  left: 0.5rem;
+  translate: 0 -50%;
+  white-space: nowrap;
+  pointer-events: none;
+}

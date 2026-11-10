@@ -1,0 +1,185 @@
+/* The window is drawn at 85%, so the palette at its tallest and the keycaps
+   under it land above the step's bottom fade, and inside the stage's right
+   edge. The story only measures layout, so the scale can change freely. */
+.shortcuts-demo {
+  --sc-scale: 0.85;
+}
+
+/* The window fades out at its foot. Padded past the window, so the mask
+   doesn't clip its hairline and halo at the sides. */
+.shortcuts-demo .sc-frame {
+  --fade: 130px;
+  position: absolute;
+  inset: -48px -48px 0;
+  padding: 48px 48px 0;
+  mask-image: linear-gradient(
+    to bottom,
+    black calc(100% - var(--fade)),
+    rgb(0 0 0 / 0.35) calc(100% - var(--fade) * 0.6),
+    transparent
+  );
+}
+
+.shortcuts-demo .sc-stage {
+  width: calc(100% / var(--sc-scale));
+  height: calc(100% / var(--sc-scale));
+  transform: scale(var(--sc-scale));
+  transform-origin: 0 0;
+}
+
+/* The modal is `.dark`, so the window takes the app's dark tokens from it;
+   data-theme="light" puts the app's light ones back. */
+.shortcuts-demo .sc-window {
+  /* The window's own edge, not an app token. */
+  --custom-shadow-chrome:
+    0 0 0 1px oklch(1 0 0 / 0.08), 0 0 32px -4px oklch(1 0 0 / 0.05),
+    0 2px 4px oklch(0 0 0 / 0.2), 0 8px 16px -4px oklch(0 0 0 / 0.3),
+    0 32px 64px -16px oklch(0 0 0 / 0.5);
+  color: var(--foreground);
+}
+
+.shortcuts-demo .sc-window[data-theme="light"] {
+  --background: oklch(0.985 0.005 257);
+  --foreground: oklch(0.14 0.012 257);
+  --card: oklch(1 0 0);
+  --card-foreground: oklch(0.14 0.012 257);
+  --popover: oklch(0.985 0.005 257);
+  --popover-foreground: oklch(0.14 0.012 257);
+  --secondary: oklch(0.92 0.012 257);
+  --secondary-foreground: oklch(0.22 0.018 257);
+  --muted: oklch(0.92 0.01 257);
+  --muted-foreground: oklch(0.48 0.014 257);
+  --accent: oklch(0.94 0.014 257);
+  --accent-foreground: oklch(0.22 0.018 257);
+  --border: oklch(0.88 0.006 257);
+  --input: oklch(0.88 0.006 257);
+  --sidebar: oklch(0.975 0.008 257);
+  --custom-shadow:
+    0 0 0 1px oklch(0.14 0.012 257 / 4%),
+    0 1px 2px -1px oklch(0.14 0.012 257 / 6%),
+    0 3px 6px -3px oklch(0.14 0.012 257 / 6%),
+    0 8px 20px -8px oklch(0.14 0.012 257 / 8%);
+  --custom-shadow-raised:
+    0 0 0 1px oklch(0.14 0.012 257 / 5%),
+    0 2px 4px -2px oklch(0.14 0.012 257 / 7%),
+    0 6px 12px -4px oklch(0.14 0.012 257 / 8%),
+    0 16px 32px -12px oklch(0.14 0.012 257 / 10%);
+  --custom-shadow-control:
+    0 0 0 1px oklch(0.14 0.012 257 / 8%),
+    0 1px 2px -1px oklch(0.14 0.012 257 / 10%),
+    0 2px 4px -2px oklch(0.14 0.012 257 / 6%);
+  --custom-shadow-overlay:
+    0 0 0 1px oklch(0.14 0.012 257 / 6%),
+    0 4px 8px -4px oklch(0.14 0.012 257 / 10%),
+    0 16px 32px -8px oklch(0.14 0.012 257 / 14%),
+    0 48px 96px -24px oklch(0.14 0.012 257 / 22%);
+  --custom-shadow-chrome:
+    0 -1px 4px oklch(0 0 0 / 0.04), 0 1px 2px -0.5px oklch(0 0 0 / 0.06),
+    0 4px 8px -2px oklch(0 0 0 / 0.06), 0 12px 24px -6px oklch(0 0 0 / 0.08);
+  color-scheme: light;
+}
+
+/* While the theme flips, the whole window crossfades instead of flashing. */
+.shortcuts-demo .sc-window[data-theming],
+.shortcuts-demo .sc-window[data-theming]::after,
+.shortcuts-demo .sc-window[data-theming] *,
+.shortcuts-demo .sc-window[data-theming] *::before,
+.shortcuts-demo .sc-window[data-theming] *::after {
+  transition-property:
+    color, background-color, border-color, box-shadow, fill, stroke;
+  transition-duration: 380ms;
+  transition-timing-function: ease;
+}
+
+/* Under the palette at its tallest (72px from the window's top, 348px tall). */
+.shortcuts-demo .sc-keys {
+  position: absolute;
+  top: calc(420px * var(--sc-scale) + 36px);
+  left: 50%;
+  z-index: 10;
+  pointer-events: none;
+}
+
+.shortcuts-demo .sc-keys__row {
+  position: absolute;
+  top: 0;
+  left: 0;
+  display: flex;
+  gap: 6px;
+  opacity: 0;
+  transform: translate(-50%, 6px) scale(0.96);
+  transition:
+    opacity 160ms ease,
+    transform 160ms ease;
+}
+
+.shortcuts-demo .sc-keys__row[data-shown] {
+  opacity: 1;
+  transform: translate(-50%, 0) scale(1);
+  transition:
+    opacity 180ms ease-out,
+    transform 240ms cubic-bezier(0.23, 1, 0.32, 1);
+}
+
+/* A Mac keycap in space grey, readable on both themes. */
+.shortcuts-demo .sc-key {
+  display: grid;
+  place-items: center;
+  min-width: 40px;
+  height: 40px;
+  padding: 0 12px;
+  border-radius: 10px;
+  background: linear-gradient(
+    to bottom,
+    oklch(36% 0.006 257),
+    oklch(29% 0.006 257)
+  );
+  box-shadow:
+    inset 0 1px 0 oklch(1 0 0 / 0.16),
+    inset 0 -2.5px 0 oklch(0 0 0 / 0.32),
+    0 0 0 1px oklch(0 0 0 / 0.55),
+    0 0 0 1.5px oklch(1 0 0 / 0.06),
+    0 10px 24px -6px oklch(0 0 0 / 0.6);
+  color: oklch(97% 0.003 257);
+  font:
+    500 17px/1 -apple-system,
+    BlinkMacSystemFont,
+    "Segoe UI",
+    sans-serif;
+  transition:
+    transform 180ms cubic-bezier(0.23, 1, 0.32, 1),
+    box-shadow 180ms cubic-bezier(0.23, 1, 0.32, 1);
+}
+
+.shortcuts-demo .sc-key[data-down] {
+  transform: translateY(1.5px) scale(0.95);
+  box-shadow:
+    inset 0 1px 0 oklch(1 0 0 / 0.1),
+    inset 0 -1px 0 oklch(0 0 0 / 0.32),
+    0 0 0 1px oklch(0 0 0 / 0.55),
+    0 0 0 1.5px oklch(1 0 0 / 0.06),
+    0 4px 10px -4px oklch(0 0 0 / 0.6);
+  transition-duration: 80ms;
+  transition-timing-function: ease-out;
+}
+
+/* Chromium's caret: takes no room, solid while keys land, blinking between. */
+.shortcuts-demo .sc-caret {
+  display: inline-block;
+  width: 1.5px;
+  height: 1.2em;
+  margin-right: -1.5px;
+  border-radius: 1px;
+  background: var(--foreground);
+  animation: shortcuts-demo-caret-blink 1s step-end infinite;
+}
+
+.shortcuts-demo[data-typing] .sc-caret {
+  animation: none;
+}
+
+@keyframes shortcuts-demo-caret-blink {
+  50% {
+    opacity: 0;
+  }
+}

@@ -1,0 +1,170 @@
+.overspend-demo {
+  /* The window's own edge on a dark page: a white hairline and halo over a drop shadow. */
+  --custom-shadow-chrome:
+    0 0 0 1px oklch(1 0 0 / 0.08), 0 0 32px -4px oklch(1 0 0 / 0.05),
+    0 2px 4px oklch(0 0 0 / 0.2), 0 8px 16px -4px oklch(0 0 0 / 0.3),
+    0 32px 64px -16px oklch(0 0 0 / 0.5);
+}
+
+/* The window at the app's size, scaled to the box by --ovs-scale. */
+.overspend-demo .ovs-stage {
+  position: absolute;
+  top: 0;
+  left: 0;
+  width: calc(100% / var(--ovs-scale, 1));
+  height: calc(100% / var(--ovs-scale, 1));
+  transform: scale(var(--ovs-scale, 1));
+  transform-origin: 0 0;
+}
+
+/* Padded past the window, so the mask that fades its foot doesn't clip its halo. */
+.overspend-demo .ovs-fade {
+  --fade: 56px;
+  mask-image: linear-gradient(
+    to bottom,
+    black calc(100% - var(--fade)),
+    rgb(0 0 0 / 0.35) calc(100% - var(--fade) * 0.6),
+    transparent
+  );
+}
+
+.overspend-demo .ovs-cursor {
+  position: absolute;
+  top: 0;
+  left: 0;
+  z-index: 10;
+  pointer-events: none;
+  opacity: 0;
+  will-change: transform;
+  /* Hides quickly on a keystroke, as macOS does when typing starts. */
+  transition: opacity 120ms ease;
+}
+
+.overspend-demo .ovs-cursor[data-shown] {
+  opacity: 1;
+  transition-duration: 240ms;
+}
+
+.overspend-demo .ovs-cursor__press {
+  display: grid;
+  /* The hotspots meet at 0,0, so a press shrinks toward the point clicked. */
+  transform-origin: 0 0;
+  transition: transform 260ms cubic-bezier(0.22, 1, 0.36, 1);
+}
+
+.overspend-demo .ovs-cursor[data-pressed] .ovs-cursor__press {
+  transform: scale(0.9);
+  transition-duration: 80ms;
+  transition-timing-function: ease-out;
+}
+
+/* Pointer and I-beam share one spot: the old shape leaves before the new one comes in. */
+.overspend-demo .ovs-cursor__glyph {
+  grid-area: 1 / 1;
+  opacity: 0;
+  transform: scale(0.6);
+  transition:
+    transform 80ms ease-out,
+    opacity 80ms ease-out;
+}
+
+/* Each glyph is offset by its hotspot: the arrow's tip and the I-beam's middle sit on 0,0. */
+.overspend-demo .ovs-cursor__glyph[data-glyph="pointer"] {
+  margin: -5.25px 0 0 -7.5px;
+  transform-origin: 7.5px 5.25px;
+}
+
+.overspend-demo .ovs-cursor__glyph[data-glyph="ibeam"] {
+  margin: -8px 0 0 -5px;
+  transform-origin: 5px 8px;
+}
+
+.overspend-demo .ovs-cursor[data-kind="pointer"] [data-glyph="pointer"],
+.overspend-demo .ovs-cursor[data-kind="ibeam"] [data-glyph="ibeam"] {
+  opacity: 1;
+  transform: scale(1);
+  transition-duration: 140ms;
+  transition-delay: 60ms;
+}
+
+/* Chromium's insertion point. It takes no room, so the placeholder doesn't shift when it arrives. */
+.overspend-demo .ovs-caret {
+  display: inline-block;
+  width: 1.5px;
+  height: 1.2em;
+  margin-right: -1.5px;
+  vertical-align: -0.22em;
+  border-radius: 1px;
+  background: var(--foreground);
+  animation: ovs-caret-blink 1s step-end infinite;
+}
+
+.overspend-demo[data-typing] .ovs-caret {
+  animation: none;
+}
+
+@keyframes ovs-caret-blink {
+  50% {
+    opacity: 0;
+  }
+}
+
+.overspend-demo .ovs-typed {
+  display: inline-block;
+  color: var(--foreground);
+}
+
+/* A line scrolled to keep its caret in view is clipped at the field's content edge, as an input's is. */
+.overspend-demo [data-add-expense][data-scrolled] {
+  text-overflow: clip;
+  clip-path: inset(0 calc(0.75rem - 2px) 0 0.75rem);
+}
+
+/* One digit: a one-line window over a strip of figures, its edges softened so a passing figure is never sliced. */
+.overspend-demo .ovs-digit {
+  display: inline-block;
+  height: 1lh;
+  overflow: clip;
+  vertical-align: top;
+  mask-image: linear-gradient(
+    to bottom,
+    transparent,
+    #000 16%,
+    #000 84%,
+    transparent
+  );
+}
+
+.overspend-demo .ovs-strip {
+  display: block;
+}
+
+.overspend-demo .ovs-strip > span {
+  display: block;
+  height: 1lh;
+}
+
+/* The minus before what's left: no room until the amount goes under. */
+.overspend-demo [data-sign] {
+  display: inline-block;
+  overflow: clip;
+  vertical-align: top;
+}
+
+.overspend-demo [data-sign][data-closed] {
+  width: 0;
+  opacity: 0;
+}
+
+/* The app's green and red are drawn for a light page; these read on the dark one. */
+.overspend-demo [data-remaining] {
+  transition: color 200ms ease;
+}
+
+.overspend-demo [data-remaining][data-tone="under"] {
+  color: oklch(72% 0.14 152);
+}
+
+.overspend-demo [data-remaining][data-tone="over"] {
+  color: var(--destructive);
+}

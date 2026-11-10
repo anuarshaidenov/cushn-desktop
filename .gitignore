@@ -1,0 +1,20 @@
+node_modules
+out
+dist
+release
+*.tsbuildinfo
+.tanstack
+.DS_Store
+*.log
+
+# Local databases and secrets
+*.db
+*.db-journal
+*.db-wal
+*.db-shm
+.env*
+
+# Local maintainer tools
+.agents/skills/
+.claude/skills/
+scripts/
