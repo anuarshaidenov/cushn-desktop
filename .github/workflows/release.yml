@@ -89,6 +89,18 @@ jobs:
 
       - run: pnpm build
 
+      # electron-builder publishes each arch on its own, and both create the release when neither
+      # finds one: two drafts with the files split between them. Both reuse a draft that exists.
+      - name: Create the draft release
+        if: github.event_name == 'push'
+        env:
+          GH_TOKEN: ${{ github.token }}
+          TAG: ${{ github.ref_name }}
+        run: |
+          if ! gh release view "$TAG" --repo "$GITHUB_REPOSITORY" > /dev/null 2>&1; then
+            gh release create "$TAG" --repo "$GITHUB_REPOSITORY" --draft --title "$VERSION" --notes "" --verify-tag
+          fi
+
       - name: Package, sign and notarize
         env:
           CSC_LINK: ${{ secrets.CSC_LINK }}
@@ -138,7 +150,7 @@ jobs:
             exit 1
           fi
           if [ "$(gh release view "$TAG" --repo "$GITHUB_REPOSITORY" --json isDraft --jq .isDraft)" != true ]; then
-            echo "::error::Expected electron-builder to leave a draft release for $TAG."
+            echo "::error::Expected a draft release for $TAG."
             exit 1
           fi
           gh release edit "$TAG" --repo "$GITHUB_REPOSITORY" --notes-file "$notes"
