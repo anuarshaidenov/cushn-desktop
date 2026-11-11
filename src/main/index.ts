@@ -10,6 +10,7 @@ import {
   Menu,
   nativeTheme,
   net,
+  screen,
   shell,
 } from "electron";
 import { autoUpdater } from "electron-updater";
@@ -48,6 +49,7 @@ import * as settings from "./repositories/settings";
 import { windowTheme } from "./theme";
 import { withThemeSync } from "./themeSync";
 import { UPDATE_CHECK_INTERVAL_MS, createUpdater } from "./updater";
+import { MIN_WINDOW_SIZE, restoreWindowSize, saveWindowSize } from "./windowState";
 
 let database: DatabaseHandle | undefined;
 let mcpSocket: McpSocketServer | undefined;
@@ -86,11 +88,15 @@ function createWindow(db: AppDatabase, lifetime: Lifetime): void {
   const { themeSource, backgroundColor } = windowTheme(settings.get(db).settings.theme);
   nativeTheme.themeSource = themeSource;
 
+  const userData = app.getPath("userData");
+  // A window given no position opens on the primary display.
+  const { width, height } = restoreWindowSize(userData, screen.getPrimaryDisplay().workAreaSize);
+
   const window = new BrowserWindow({
-    width: 1280,
-    height: 820,
-    minWidth: 500,
-    minHeight: 560,
+    width,
+    height,
+    minWidth: MIN_WINDOW_SIZE.width,
+    minHeight: MIN_WINDOW_SIZE.height,
     title: APP_NAME,
     show: false,
     autoHideMenuBar: true,
@@ -111,6 +117,8 @@ function createWindow(db: AppDatabase, lifetime: Lifetime): void {
   // Not while running windowless for an agent: an update would swap the app under its relay.
   updater.start();
   window.once("closed", () => lifetime.windowClosed());
+  // The normal bounds, so a maximized or fullscreen window doesn't save the screen's size.
+  window.on("close", () => saveWindowSize(userData, window.getNormalBounds()));
 
   // On resize, Electron reports `titlebar-area-x` while macOS still has the traffic lights at
   // their default spot, so the header padding jitters. Re-applying the position re-reports it.
