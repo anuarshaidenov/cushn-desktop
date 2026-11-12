@@ -1,7 +1,7 @@
 import type { TrashedBudgetListItem } from "@shared/api";
 import { TRASH_RETENTION_DAYS } from "@shared/constants";
 import { CushnError } from "@shared/errors";
-import { useRef, useState } from "react";
+import { useState } from "react";
 import { HugeiconsIcon } from "@hugeicons/react";
 import {
   Delete01Icon,
@@ -27,15 +27,6 @@ import {
   DropdownMenuTrigger,
 } from "./ui/dropdown-menu";
 import {
-  Dialog,
-  DialogClose,
-  DialogContent,
-  DialogDescription,
-  DialogFooter,
-  DialogHeader,
-  DialogTitle,
-} from "./ui/dialog";
-import {
   Empty,
   EmptyDescription,
   EmptyHeader,
@@ -53,6 +44,7 @@ import { formatRelativeTime } from "@/lib/relativeTime";
 import { formatTrashDaysLeft, trashDaysLeft } from "@/lib/trash";
 import { cn, formatNumberWithSpaces, getCurrencySymbol } from "@/lib/utils";
 import { LoadMoreButton } from "./LoadMoreButton";
+import { ConfirmDialog } from "./ConfirmDialog";
 
 const LOAD_AMOUNT = 25;
 const SOON_DAYS = 3;
@@ -267,58 +259,5 @@ const EmptyTrashButton = (props: {
         onConfirm={emptyTrash}
       />
     </>
-  );
-};
-
-/** For actions that can't be undone; Cancel takes the initial focus. */
-const ConfirmDialog = (props: {
-  open: boolean;
-  onOpenChange: (open: boolean) => void;
-  title: string;
-  description: string;
-  confirmLabel: string;
-  isPending: boolean;
-  onConfirm: () => void;
-}) => {
-  const cancelRef = useRef<HTMLButtonElement>(null);
-
-  return (
-    <Dialog
-      open={props.open}
-      onOpenChange={(next) => {
-        if (!props.isPending) props.onOpenChange(next);
-      }}
-    >
-      <DialogContent
-        className="sm:max-w-md"
-        showCloseButton={false}
-        initialFocus={cancelRef}
-      >
-        <DialogHeader>
-          <DialogTitle className="[overflow-wrap:anywhere]">
-            {props.title}
-          </DialogTitle>
-          <DialogDescription>{props.description}</DialogDescription>
-        </DialogHeader>
-        <DialogFooter>
-          <DialogClose
-            ref={cancelRef}
-            disabled={props.isPending}
-            render={<Button variant="outline" size="sm" />}
-          >
-            Cancel
-          </DialogClose>
-          <Button
-            variant="destructive"
-            size="sm"
-            disabled={props.isPending}
-            onClick={props.onConfirm}
-          >
-            {props.isPending && <Spinner />}
-            {props.confirmLabel}
-          </Button>
-        </DialogFooter>
-      </DialogContent>
-    </Dialog>
   );
 };

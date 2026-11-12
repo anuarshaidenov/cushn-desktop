@@ -1,7 +1,7 @@
 import { Budget } from "@/components/Budget";
 import { DashboardContainer } from "@/components/ui/dashboard-container";
 import { DashboardHeaderWrapper } from "@/components/ui/dashboard-header-wrapper";
-import { createFileRoute, useNavigate } from "@tanstack/react-router";
+import { createFileRoute } from "@tanstack/react-router";
 import type { Id } from "@shared/domain";
 import { budgetQueries, useBudget } from "@/data/budgets";
 import { expenseQueries, useBudgetExpenses } from "@/data/expenses";
@@ -20,8 +20,10 @@ import {
   BudgetPropertiesMobile,
 } from "@/components/BudgetProperties";
 import { BudgetBreadcrumb } from "@/components/BudgetBreadcrumb";
+import { BudgetHeaderActions } from "@/components/BudgetHeaderActions";
 import { useEffect, useRef } from "react";
 import { budgetListSearchSchema } from "@/lib/budgetListSearch";
+import { useLeaveBudgetPage } from "@/hooks/useLeaveBudgetPage";
 import { HotkeysProvider } from "@tanstack/react-hotkeys";
 import { hotkeyScopes } from "@/lib/hotkeys";
 
@@ -46,16 +48,15 @@ function RouteComponent() {
   const budgetId = Route.useParams().budgetId as Id<"budgets">;
   const { data: budgetData } = useBudget(budgetId);
   const { data: expensesData } = useBudgetExpenses(budgetId);
-  const navigate = useNavigate();
+  const leave = useLeaveBudgetPage();
   const hadBudget = useRef(false);
 
-  // Moved to the trash (or deleted) while open, e.g. by ⇧⌘Z: leave rather than show "not found".
+  // Moved to the trash (or deleted) while open, e.g. by Delete or ⇧⌘Z: go back
+  // where the breadcrumb points rather than show "not found".
   useEffect(() => {
     if (budgetData?.budget) hadBudget.current = true;
-    else if (budgetData && hadBudget.current) {
-      navigate({ to: "/dashboard", replace: true });
-    }
-  }, [budgetData, navigate]);
+    else if (budgetData && hadBudget.current) leave();
+  }, [budgetData, leave]);
 
   useEffect(() => {
     if (budgetData?.budget?.title) {
@@ -108,7 +109,10 @@ function RouteComponent() {
   return (
     <div className="flex h-full flex-col overflow-hidden">
       <DashboardHeaderWrapper className="rounded-t-xl bg-background">
-        <BudgetBreadcrumb currentPageTitle={budgetData.budget.title} />
+        <div className="flex w-full items-center justify-between gap-4">
+          <BudgetBreadcrumb currentPageTitle={budgetData.budget.title} />
+          <BudgetHeaderActions budget={budgetData.budget} />
+        </div>
       </DashboardHeaderWrapper>
 
       <BudgetPropertiesMobile budget={budgetData.budget} />

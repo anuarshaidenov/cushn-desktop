@@ -43,7 +43,7 @@ Component → domain hook (`useBudgets()`, `useCreateExpense()`, …) → `cushn
   - State a component's children share (a menu's pending flag) lives in a wrapper component that provides it through context, so children read it directly.
   - Context reads a component makes together go behind one custom hook.
 
-  `BudgetCard` is the worked example: `BudgetCardContextMenu` (in `BudgetCardActions.tsx`), plus `useSelectableBudget` and `BudgetListHotkeys` (in `BudgetSelection.tsx`).
+  `BudgetCard` is the worked example: `BudgetCardContextMenu` (in `BudgetCardActions.tsx`, its menus' pending flag from `BudgetMenuActionProvider` in `BudgetMenuItems.tsx`), plus `useSelectableBudget` and `BudgetListHotkeys` (in `BudgetSelection.tsx`).
 - **Match the surrounding code style**: naming, file layout, import order and formatting of the neighbouring files.
 - **Weigh security by exposure**: harden what ships to users (IPC handlers, the MCP socket, backups); keep dev-mode and maintainer-only tooling simple.
 

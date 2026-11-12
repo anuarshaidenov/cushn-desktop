@@ -1,6 +1,5 @@
 import { BudgetLabel } from "./BudgetLabel";
 import { BudgetViewProperty } from "./BudgetViewProperty";
-import { ExportBudgetToMarkdown } from "./ExportBudgetToMarkdown";
 import type { BudgetDetail } from "@shared/api";
 
 type Props = {
@@ -62,13 +61,6 @@ export const BudgetPropertiesDesktop = (props: Props) => {
           />
         </li>
       </ul>
-
-      <div className="mb-3">
-        <h2 className="text-muted-foreground text-xs font-medium">Export</h2>
-      </div>
-      <div className="flex flex-col flex-wrap items-start gap-2">
-        <ExportBudgetToMarkdown budgetId={props.budget.id} />
-      </div>
     </div>
   );
 };
