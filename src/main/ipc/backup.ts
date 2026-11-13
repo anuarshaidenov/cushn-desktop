@@ -55,8 +55,8 @@ export function createBackupHandlers({
 }: BackupDependencies): CushnHandlers["backup"] {
   let opened: { token: string; backup: Backup } | null = null;
 
-  const exportText = (db: AppDatabase) =>
-    serializeBackup(backup.exportAll(db, { exportedAt: now(), appVersion }));
+  const exportText = (db: AppDatabase, options?: { compact: boolean }) =>
+    serializeBackup(backup.exportAll(db, { exportedAt: now(), appVersion }), options);
 
   // Synchronous on purpose: no IPC write may land between the snapshot and the import.
   function writeSafetyCopy(db: AppDatabase): string {
@@ -64,7 +64,7 @@ export function createBackupHandlers({
     const filePath = join(safetyCopyDir, name);
     try {
       mkdirSync(safetyCopyDir, { recursive: true });
-      writeFileSync(filePath, exportText(db));
+      writeFileSync(filePath, exportText(db, { compact: true }));
     } catch {
       throw new CushnError(
         "INTERNAL",

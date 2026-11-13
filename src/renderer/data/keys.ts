@@ -37,6 +37,7 @@ export const queryKeys = {
   },
   expenses: {
     root: ["expenses"] as const,
+    allGrouped: () => ["expenses", "grouped"] as const,
     grouped: (budgetId: Id<"budgets">) => ["expenses", "grouped", budgetId] as const,
     chart: (budgetId: Id<"budgets">) => ["expenses", "chart", budgetId] as const,
   },

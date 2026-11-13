@@ -23,7 +23,7 @@ export const Route = createFileRoute("/settings/templates")({
   component: RouteComponent,
   loader: ({ context }) =>
     context.queryClient
-      .ensureQueryData(templateQueries.list())
+      .query(templateQueries.list())
       .catch(() => undefined),
 });
 

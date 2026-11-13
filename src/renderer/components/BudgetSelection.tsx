@@ -1,8 +1,11 @@
 import {
   createContext,
   use,
+  useEffect,
+  useMemo,
   useRef,
   useState,
+  useSyncExternalStore,
   type MouseEvent,
   type ReactNode,
 } from "react";
@@ -21,6 +24,10 @@ import {
   useMarqueeSelection,
 } from "@/hooks/use-marquee-selection";
 import { appHotkeys } from "@/lib/hotkeys";
+import {
+  createSelectionStore,
+  type SelectionStore,
+} from "@/lib/selectionStore";
 import { cn } from "@/lib/utils";
 import { ShortcutKeys } from "./ShortcutKeys";
 
@@ -30,14 +37,16 @@ type BudgetSelectionValue = {
   /** The selected budgets that are still listed, in list order. */
   selectedBudgets: BudgetListItem[];
   selectedIds: Id<"budgets">[];
-  isSelected: (id: Id<"budgets">) => boolean;
   setSelectedIds: (ids: Id<"budgets">[]) => void;
-  toggle: (id: Id<"budgets">) => void;
   /** Selects every listed budget, or clears the selection when there is one. */
   toggleAll: () => void;
 };
 
 const BudgetSelectionContext = createContext<BudgetSelectionValue | null>(null);
+// Stable for the provider's lifetime: cards and rows subscribe to their own id through it.
+const BudgetSelectionStoreContext = createContext<SelectionStore<
+  Id<"budgets">
+> | null>(null);
 const MarqueeSelectingContext = createContext(false);
 
 type ProviderProps = {
@@ -50,36 +59,36 @@ export const BudgetSelectionProvider = ({
   budgets,
   children,
 }: ProviderProps) => {
-  const [ids, setIds] = useState<Id<"budgets">[]>([]);
-  // Ids that left the list (filters changed, archived elsewhere) drop out here, and from the state on the next change.
-  const selectedBudgets = budgets.filter((budget) => ids.includes(budget.id));
-  const selectedIds = selectedBudgets.map((budget) => budget.id);
+  const [store] = useState(() => createSelectionStore<Id<"budgets">>());
+  const selected = useSyncExternalStore(store.subscribe, store.getSnapshot);
 
-  const isSelected = (id: Id<"budgets">) => selectedIds.includes(id);
-  const toggle = (id: Id<"budgets">) =>
-    setIds(
-      isSelected(id)
-        ? selectedIds.filter((selectedId) => selectedId !== id)
-        : [...selectedIds, id],
-    );
-  const toggleAll = () =>
-    setIds(selectedIds.length > 0 ? [] : budgets.map((budget) => budget.id));
+  useEffect(() => {
+    store.setListed(budgets.map((budget) => budget.id));
+  }, [store, budgets]);
+
+  const selection = useMemo(() => {
+    // Ids that left the list (filters changed, archived elsewhere) drop out here, and from the store on the next change.
+    const selectedBudgets = budgets.filter((budget) => selected.has(budget.id));
+    const selectedIds = selectedBudgets.map((budget) => budget.id);
+    return {
+      budgets,
+      selectedBudgets,
+      selectedIds,
+      setSelectedIds: store.set,
+      toggleAll: () =>
+        store.set(
+          selectedIds.length > 0 ? [] : budgets.map((budget) => budget.id),
+        ),
+    };
+  }, [store, budgets, selected]);
 
   return (
-    <BudgetSelectionContext
-      value={{
-        budgets,
-        selectedBudgets,
-        selectedIds,
-        isSelected,
-        setSelectedIds: setIds,
-        toggle,
-        toggleAll,
-      }}
-    >
-      <BudgetListHotkeys />
-      {children}
-    </BudgetSelectionContext>
+    <BudgetSelectionStoreContext value={store}>
+      <BudgetSelectionContext value={selection}>
+        <BudgetListHotkeys />
+        {children}
+      </BudgetSelectionContext>
+    </BudgetSelectionStoreContext>
   );
 };
 
@@ -135,20 +144,27 @@ export const useBudgetSelection = () => {
 /** `null` outside a provider: a View's page shows budget cards without selection. */
 export const useOptionalBudgetSelection = () => use(BudgetSelectionContext);
 
-/** What a card or row needs from the selection; inert outside a provider. */
+const subscribeNowhere = () => () => {};
+
+/** What a card or row needs from the selection; inert outside a provider. Re-renders only when this id's selected state flips. */
 export const useSelectableBudget = (id: Id<"budgets">) => {
-  const selection = use(BudgetSelectionContext);
+  const store = use(BudgetSelectionStoreContext);
+  const isSelected = useSyncExternalStore(
+    store?.subscribe ?? subscribeNowhere,
+    () => store?.has(id) ?? false,
+  );
   const isMarqueeSelecting = use(MarqueeSelectingContext);
 
   return {
-    isSelected: selection?.isSelected(id) ?? false,
+    isSelected,
     isMarqueeSelecting,
+    toggle: () => store?.toggle(id),
     /** Toggles on ⌘/Ctrl-click and returns `true`, so the caller skips its navigation. */
     toggleOnModifierClick: (event: MouseEvent) => {
-      if (!selection || !(event.metaKey || event.ctrlKey)) return false;
+      if (!store || !(event.metaKey || event.ctrlKey)) return false;
       // Also keeps a link from opening in a new window.
       event.preventDefault();
-      selection.toggle(id);
+      store.toggle(id);
       return true;
     },
   };

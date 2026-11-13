@@ -22,7 +22,7 @@ export const Route = createFileRoute("/dashboard/views/")({
   component: RouteComponent,
   loader: ({ context }) =>
     context.queryClient
-      .ensureQueryData(viewQueries.list())
+      .query(viewQueries.list())
       .catch(() => undefined),
 });
 

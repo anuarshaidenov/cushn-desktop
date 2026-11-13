@@ -1,7 +1,8 @@
-import { QueryClient } from "@tanstack/react-query";
+import { type QueryClient, QueryObserver } from "@tanstack/react-query";
 import { describe, expect, it, vi } from "vitest";
 import type { ChangedEvent } from "@shared/api";
 import { changedRoots, subscribeToChanges } from "./changes";
+import { createQueryClient } from "./queryClient";
 
 function fakeBridge() {
   const listeners = new Set<(event: ChangedEvent) => void>();
@@ -53,29 +54,46 @@ describe("changedRoots", () => {
 });
 
 describe("subscribeToChanges", () => {
-  it("refetches cached queries under each changed root and leaves the others", async () => {
-    const client = new QueryClient();
+  it("refetches observed queries under each changed root and leaves the others", async () => {
+    const client = createQueryClient();
     const bridge = fakeBridge();
     const budgets = countingQuery(["budgets", "detail", "b1"]);
     const home = countingQuery(["home", "summary"]);
     const labels = countingQuery(["labels"]);
-    await Promise.all(
-      [budgets, home, labels].map((query) => client.fetchQuery(query)),
+    const unsubscribes = [budgets, home, labels].map((query) =>
+      new QueryObserver(client, query).subscribe(() => {}),
     );
+    await settled(client);
     subscribeToChanges(client, bridge.onChanged);
 
     bridge.emit({ roots: ["budgets", "home", "agents"] });
     await settled(client);
 
     expect([budgets.calls, home.calls, labels.calls]).toEqual([2, 2, 1]);
+    for (const unsubscribe of unsubscribes) unsubscribe();
+    client.clear();
+  });
+
+  it("marks unobserved queries for the next loader instead of refetching them", async () => {
+    const client = createQueryClient();
+    const bridge = fakeBridge();
+    const budgets = countingQuery(["budgets", "detail", "b1"]);
+    await client.query(budgets);
+    subscribeToChanges(client, bridge.onChanged);
+
+    bridge.emit({ roots: ["budgets"] });
+    await settled(client);
+
+    expect(budgets.calls).toBe(1);
+    expect(client.getQueryState(budgets.queryKey)?.isInvalidated).toBe(true);
     client.clear();
   });
 
   it("stops after unsubscribing", async () => {
-    const client = new QueryClient();
+    const client = createQueryClient();
     const bridge = fakeBridge();
     const budgets = countingQuery(["budgets"]);
-    await client.fetchQuery(budgets);
+    await client.query(budgets);
     const unsubscribe = subscribeToChanges(client, bridge.onChanged);
 
     unsubscribe();
@@ -83,7 +101,7 @@ describe("subscribeToChanges", () => {
     await settled(client);
 
     expect(bridge.listeners.size).toBe(0);
-    expect(budgets.calls).toBe(1);
+    expect(client.getQueryState(budgets.queryKey)?.isInvalidated).toBe(false);
     client.clear();
   });
 });

@@ -6,9 +6,15 @@ import {
   CardHeader,
   CardTitle,
 } from "./ui/card";
+import { memo } from "react";
 import { Link } from "@tanstack/react-router";
 import type { BudgetListItem } from "@shared/api";
-import { cn, formatNumberWithSpaces, getCurrencySymbol } from "@/lib/utils";
+import {
+  cn,
+  formatNumberWithSpaces,
+  formatShortDate,
+  getCurrencySymbol,
+} from "@/lib/utils";
 import { BudgetCardActions, BudgetCardContextMenu } from "./BudgetCardActions";
 import { BudgetLabel } from "./BudgetLabel";
 import { BudgetIconGlyph } from "./BudgetIcon";
@@ -20,7 +26,7 @@ type Props = {
   budget: BudgetListItem;
 };
 
-export const BudgetCard = (props: Props) => {
+export const BudgetCard = memo(function BudgetCard(props: Props) {
   const { isSelected, isMarqueeSelecting, toggleOnModifierClick } =
     useSelectableBudget(props.budget.id);
 
@@ -57,11 +63,7 @@ export const BudgetCard = (props: Props) => {
             <span className="truncate">{props.budget.title}</span>
           </CardTitle>
           <CardDescription className="px-0 text-xs">
-            {new Date(props.budget.createdAt).toLocaleDateString("en-US", {
-              year: "numeric",
-              month: "short",
-              day: "numeric",
-            })}
+            {formatShortDate(props.budget.createdAt)}
           </CardDescription>
           <CardAction className="relative z-10 mt-1">
             <BudgetCardActions budget={props.budget} />
@@ -87,4 +89,4 @@ export const BudgetCard = (props: Props) => {
       </Card>
     </BudgetCardContextMenu>
   );
-};
+});

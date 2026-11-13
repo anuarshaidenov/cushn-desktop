@@ -14,8 +14,19 @@ export const swapIconClass = (visible: boolean) =>
       "scale-75 opacity-0 blur-[2px] motion-reduce:scale-100 motion-reduce:blur-none",
   );
 
+const numberWithSpacesFormat = new Intl.NumberFormat("fr-FR");
+
 export const formatNumberWithSpaces = (number: number) =>
-  new Intl.NumberFormat("fr-FR").format(number);
+  numberWithSpacesFormat.format(number);
+
+const shortDateFormat = new Intl.DateTimeFormat("en-US", {
+  year: "numeric",
+  month: "short",
+  day: "numeric",
+});
+
+/** `Mar 4, 2026` */
+export const formatShortDate = (time: number) => shortDateFormat.format(time);
 
 export const isTyping = (target: HTMLElement): boolean => {
   return (
@@ -38,7 +49,9 @@ export const isCopying = (event: KeyboardEvent): boolean => {
   return event.metaKey || event.ctrlKey;
 };
 
-export const getCurrencySymbol = (code: string): string | undefined => {
-  const currency = CURRENCIES.find((c) => c.code === code);
-  return currency ? currency.symbol : undefined;
-};
+const currencySymbols = new Map<string, string>(
+  CURRENCIES.map((c) => [c.code, c.symbol]),
+);
+
+export const getCurrencySymbol = (code: string): string | undefined =>
+  currencySymbols.get(code);

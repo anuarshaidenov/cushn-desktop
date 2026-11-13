@@ -41,7 +41,7 @@ import {
 } from "@/components/ui/empty";
 import { ShortcutKeys } from "./ShortcutKeys";
 import { Skeleton } from "./ui/skeleton";
-import { cn } from "@/lib/utils";
+import { cn, formatShortDate } from "@/lib/utils";
 import { CushnError } from "@shared/errors";
 
 export type BudgetViewSummary = BudgetView;
@@ -49,14 +49,6 @@ export type BudgetViewSummary = BudgetView;
 type Props = {
   views: BudgetViewSummary[];
 };
-
-function formatViewCreatedAt(createdAt: number): string {
-  return new Date(createdAt).toLocaleDateString("en-US", {
-    year: "numeric",
-    month: "short",
-    day: "numeric",
-  });
-}
 
 export const ViewList = (props: Props) => {
   return (
@@ -237,7 +229,7 @@ const ViewListItem = ({ view }: { view: BudgetViewSummary }) => {
         </CardHeader>
         <CardContent>
           <p className="text-sm text-muted-foreground tabular-nums">
-            Created {formatViewCreatedAt(view.createdAt)}
+            Created {formatShortDate(view.createdAt)}
           </p>
         </CardContent>
       </ContextMenuTrigger>

@@ -34,7 +34,7 @@ import * as z from "zod";
 import { toast } from "@/components/ui/toast";
 import type { Id } from "@shared/domain";
 import { useRouter, useRouterState } from "@tanstack/react-router";
-import { BudgetLabelOption, useBudgetLabelItems } from "./BudgetLabel";
+import { BudgetLabelOption, budgetLabelItems } from "./BudgetLabel";
 import { useCreateBudget, useLatestBudget } from "@/data/budgets";
 import { useLabels } from "@/data/labels";
 import { useSettings } from "@/data/settings";
@@ -442,7 +442,7 @@ export const SelectBudgetLabel = (props: {
   onSelect: (labelId: Id<"budgetLabels"> | undefined) => void;
 }) => {
   const { data: labelData } = useLabels();
-  const items = useBudgetLabelItems(labelData?.labels);
+  const items = budgetLabelItems(labelData?.labels);
 
   useEffect(() => {
     if (props.defaultValue) {

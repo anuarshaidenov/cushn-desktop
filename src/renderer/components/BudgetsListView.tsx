@@ -8,7 +8,7 @@ import {
   Archive02Icon,
   Delete01Icon,
 } from "@hugeicons/core-free-icons";
-import { cn, formatNumberWithSpaces } from "@/lib/utils";
+import { cn, formatNumberWithSpaces, formatShortDate } from "@/lib/utils";
 import { BudgetLabel } from "./BudgetLabel";
 import { BudgetIconGlyph } from "./BudgetIcon";
 import { Checkbox } from "./ui/checkbox";
@@ -58,14 +58,16 @@ export const BudgetsListView = ({ budgets, currentSearch }: Props) => {
   );
 };
 
-const BudgetListItem = ({
+const BudgetListItem = React.memo(function BudgetListItem({
   budget,
   currentSearch,
 }: {
   budget: BudgetsGridViewBudget;
   currentSearch: BudgetListSearch;
-}) => {
-  const { isSelected, toggleOnModifierClick } = useSelectableBudget(budget.id);
+}) {
+  const { isSelected, toggle, toggleOnModifierClick } = useSelectableBudget(
+    budget.id,
+  );
   const [isMenuPending, setIsMenuPending] = React.useState(false);
   const startMenuAction = () => setIsMenuPending(true);
   const settleMenuAction = () => setIsMenuPending(false);
@@ -100,7 +102,11 @@ const BudgetListItem = ({
               onActionStart={startMenuAction}
               onActionSettled={settleMenuAction}
             />
-            <BudgetCheckbox budgetId={budget.id} />
+            <BudgetCheckbox
+              budgetId={budget.id}
+              checked={isSelected}
+              onToggle={toggle}
+            />
             <div className="flex w-full min-w-0 items-center justify-between gap-4">
               <div className="flex min-w-0 flex-1 items-center gap-2 text-left">
                 <BudgetIconGlyph icon={budget.icon} />
@@ -127,11 +133,7 @@ const BudgetListItem = ({
                   />
                 </div>
                 <span className="w-20 text-right text-xs text-muted-foreground tabular-nums">
-                  {new Date(budget.createdAt).toLocaleDateString("en-US", {
-                    month: "short",
-                    day: "numeric",
-                    year: "numeric",
-                  })}
+                  {formatShortDate(budget.createdAt)}
                 </span>
               </div>
             </div>
@@ -147,18 +149,20 @@ const BudgetListItem = ({
       </ContextMenu>
     </li>
   );
-};
+});
 
-const BudgetCheckbox = (props: { budgetId: Id<"budgets"> }) => {
-  const { isSelected, toggle } = useBudgetSelection();
-
+const BudgetCheckbox = (props: {
+  budgetId: Id<"budgets">;
+  checked: boolean;
+  onToggle: () => void;
+}) => {
   return (
     <Checkbox
       onClick={(e) => {
         e.stopPropagation();
       }}
-      checked={isSelected(props.budgetId)}
-      onCheckedChange={() => toggle(props.budgetId)}
+      checked={props.checked}
+      onCheckedChange={props.onToggle}
       aria-label="Select budget"
       data-budget-id={props.budgetId}
       className="after:-inset-x-1"

@@ -8,8 +8,9 @@ export const ratesQueries = {
     queryOptions({
       queryKey: queryKeys.rates.get(),
       queryFn: () => cushn.rates.get(),
-      // Main caches for 12 hours; this only spares the IPC round trip.
+      // Main refreshes its 12-hour cache only when asked; the hour spares the IPC round trip.
       staleTime: 60 * 60 * 1000,
+      refetchOnWindowFocus: true,
     }),
 };
 

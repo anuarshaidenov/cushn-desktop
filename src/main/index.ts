@@ -112,7 +112,10 @@ function createWindow(db: AppDatabase, lifetime: Lifetime): void {
     },
   });
 
-  window.once("ready-to-show", () => window.show());
+  window.once("ready-to-show", () => {
+    window.show();
+    purgeTrash();
+  });
   lifetime.windowOpened();
   // Not while running windowless for an agent: an update would swap the app under its relay.
   updater.start();
@@ -165,6 +168,25 @@ const updater = createUpdater({
   onStatusChanged: () => notifyChanged(["updates"]),
   logError: (message, error) => console.error(message, error),
 });
+
+/** When to purge the trash with no window to wait for (started for an agent). */
+const TRASH_PURGE_DELAY_MS = 5000;
+let trashPurged = false;
+
+/**
+ * Hard-deletes expired trash once per launch, off the path to the first paint: when the first
+ * window is ready to show, else after `TRASH_PURGE_DELAY_MS`. Open screens refetch after it.
+ */
+function purgeTrash(): void {
+  if (trashPurged || !database) return;
+  trashPurged = true;
+  try {
+    if (budgets.purgeTrash(database.db) > 0) notifyChanged(["budgets", "expenses", "home"]);
+  } catch (error) {
+    // The trash is retried on the next launch; it never blocks opening the app.
+    console.error("Failed to purge the trash", error);
+  }
+}
 
 function mcpPaths() {
   const userData = app.getPath("userData");
@@ -279,12 +301,6 @@ void app.whenReady().then(async () => {
 
   // Before any window exists, so no renderer call can race the registration.
   const { db } = database;
-  try {
-    budgets.purgeTrash(db);
-  } catch (error) {
-    // The trash is retried on the next launch; it never blocks opening the app.
-    console.error("Failed to purge the trash", error);
-  }
   // Shared by IPC and MCP, so concurrent callers share one request.
   const rates = createRates({ fetch: (url, init) => net.fetch(url, init), now: Date.now });
   const agents = createAgents();
@@ -312,6 +328,7 @@ void app.whenReady().then(async () => {
     quit: () => app.quit(),
   });
   if (!background) createWindow(db, lifetime);
+  setTimeout(purgeTrash, TRASH_PURGE_DELAY_MS);
   void startMcpSocket(db, rates, lifetime);
   agents.refreshLauncher().catch((error: unknown) => {
     console.error("Failed to refresh the cushn-mcp launcher", error);

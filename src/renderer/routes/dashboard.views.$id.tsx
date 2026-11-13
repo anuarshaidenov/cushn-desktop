@@ -40,7 +40,7 @@ export const Route = createFileRoute("/dashboard/views/$id")({
   component: RouteComponent,
   loader: ({ context, params }) =>
     context.queryClient
-      .ensureQueryData(viewQueries.detail(params.id as Id<"budgetViews">))
+      .query(viewQueries.detail(params.id as Id<"budgetViews">))
       .catch(() => undefined),
 });
 

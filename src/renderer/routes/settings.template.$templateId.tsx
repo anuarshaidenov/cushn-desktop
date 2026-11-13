@@ -12,9 +12,7 @@ export const Route = createFileRoute("/settings/template/$templateId")({
   component: RouteComponent,
   loader: ({ context, params }) =>
     context.queryClient
-      .ensureQueryData(
-        templateQueries.detail(params.templateId as Id<"templates">),
-      )
+      .query(templateQueries.detail(params.templateId as Id<"templates">))
       .catch(() => undefined),
 });
 

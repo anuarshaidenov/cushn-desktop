@@ -38,8 +38,9 @@ export const Route = createFileRoute("/dashboard/$budgetId")({
   loader: ({ context, params }) => {
     const budgetId = params.budgetId as Id<"budgets">;
     return Promise.all([
-      context.queryClient.ensureQueryData(budgetQueries.detail(budgetId)),
-      context.queryClient.ensureQueryData(expenseQueries.grouped(budgetId)),
+      context.queryClient.query(budgetQueries.detail(budgetId)),
+      context.queryClient.query(expenseQueries.grouped(budgetId)),
+      context.queryClient.query(expenseQueries.chart(budgetId)),
     ]).catch(() => undefined);
   },
 });

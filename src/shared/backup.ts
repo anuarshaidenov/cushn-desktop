@@ -219,7 +219,8 @@ export function parseBackup(value: unknown): Backup {
 
   const backup = upgradeBackup(value, version, BACKUP_CHAIN);
   checkIntegrity(backup.data);
-  return { ...backup, data: roundMoneyValues(backup.data) };
+  roundMoneyValues(backup.data);
+  return backup;
 }
 
 function validate<T>(schema: z.ZodType<T>, value: unknown): T {
@@ -231,8 +232,9 @@ function validate<T>(schema: z.ZodType<T>, value: unknown): T {
   return result.data;
 }
 
-export function serializeBackup(backup: Backup): string {
-  return `${JSON.stringify(backup, null, 2)}\n`;
+/** Indented for the user's own files; `compact` for files only the app reads back. */
+export function serializeBackup(backup: Backup, { compact = false } = {}): string {
+  return `${compact ? JSON.stringify(backup) : JSON.stringify(backup, null, 2)}\n`;
 }
 
 /** `cushn-backup-YYYY-MM-DD.json`, in local time. */
@@ -265,10 +267,9 @@ function checkIntegrity(data: BackupData): void {
     if (!templateIds.has(category.templateId)) {
       throw damaged(`a template category ("${category.name}") refers to a missing template.`);
     }
-    percentages.set(category.templateId, [
-      ...(percentages.get(category.templateId) ?? []),
-      category.percentage,
-    ]);
+    const list = percentages.get(category.templateId);
+    if (list) list.push(category.percentage);
+    else percentages.set(category.templateId, [category.percentage]);
   }
   for (const template of data.templates) {
     if (!sumsTo100(percentages.get(template.id) ?? [])) {
@@ -322,16 +323,13 @@ function uniqueIds(rows: readonly { id: string }[], noun: string): Set<string> {
   return ids;
 }
 
-function roundMoneyValues(data: BackupData): BackupData {
-  return {
-    ...data,
-    budgets: data.budgets.map((budget) => ({ ...budget, income: roundMoney(budget.income) })),
-    budgetAllocations: data.budgetAllocations.map((allocation) => ({
-      ...allocation,
-      amount: roundMoney(allocation.amount),
-    })),
-    expenses: data.expenses.map((expense) => ({ ...expense, amount: roundMoney(expense.amount) })),
-  };
+/** In place: `data` is the schema's output, never the caller's value. */
+function roundMoneyValues(data: BackupData): void {
+  for (const budget of data.budgets) budget.income = roundMoney(budget.income);
+  for (const allocation of data.budgetAllocations) {
+    allocation.amount = roundMoney(allocation.amount);
+  }
+  for (const expense of data.expenses) expense.amount = roundMoney(expense.amount);
 }
 
 function formatPath(path: readonly PropertyKey[]): string {

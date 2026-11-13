@@ -10,11 +10,12 @@
  * - Every per-user index keeps its tail plus `createdAt`, so ordered scans stay
  *   indexed.
  *
- * Not expressible in Drizzle, so it lives in a custom migration
- * (`drizzle/0001_budgets_fts.sql`): the `budgets_fts` FTS5 table and the
- * triggers that keep it in sync with `budgets.title`. SQLite drops triggers
- * with their table, so a future migration that rebuilds `budgets` (drizzle-kit
- * does that for most column changes) must recreate those triggers.
+ * Not expressible in Drizzle, so it lives in hand-written SQL (latest in
+ * `drizzle/0005_budgets_fts_rowids.sql`): the `budgets_fts` FTS5 table, its
+ * `budgets_fts_rowids` key table and the triggers that keep both in sync with
+ * `budgets.title`. SQLite drops triggers with their table, so a future
+ * migration that rebuilds `budgets` (drizzle-kit does that for most column
+ * changes) must recreate those triggers.
  */
 import { randomUUID } from "node:crypto";
 import { sql } from "drizzle-orm";
@@ -141,6 +142,8 @@ export const budgets = sqliteTable(
     index("budgets_label_idx").on(t.labelId),
     index("budgets_template_idx").on(t.templateId),
     index("budgets_deleted_idx").on(t.deletedAt),
+    // The newest budget, which new budgets are stamped after.
+    index("budgets_created_idx").on(t.createdAt),
   ],
 );
 

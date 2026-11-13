@@ -43,6 +43,14 @@ describe("parseBackupText", () => {
     expect(parseBackupText(text)).toEqual(backup);
   });
 
+  it("parses the compact JSON of a safety copy to the same backup", () => {
+    const backup = parseBackup(rawBackup());
+    const text = serializeBackup(backup, { compact: true });
+
+    expect(text).toBe(`${JSON.stringify(backup)}\n`);
+    expect(parseBackupText(text)).toEqual(backup);
+  });
+
   it("ignores a UTF-8 byte order mark left by an editor", () => {
     const backup = parseBackup(rawBackup());
     expect(parseBackupText(`\uFEFF${serializeBackup(backup)}`)).toEqual(backup);
@@ -362,6 +370,8 @@ describe("parseBackup: money", () => {
     expect(data.budgetAllocations[3].amount).toBe(111.33);
     expect(data.budgetAllocations[3].percentage).toBe(33.33333);
     expect(data.expenses[1].amount).toBe(1.01);
+    expect(raw.data.budgets[0].income).toBe(5000.004);
+    expect(raw.data.expenses[1].amount).toBe(1.005);
   });
 });
 

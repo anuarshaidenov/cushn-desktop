@@ -10,7 +10,6 @@ import {
 import { useNavigate } from "@tanstack/react-router";
 import { useActiveBudgets } from "@/data/budgets";
 import { useHotkey } from "@tanstack/react-hotkeys";
-import { Spinner } from "./ui/spinner";
 import { useCommandDialogStore } from "@/stores/useCommandDialogStore";
 import { HugeiconsIcon } from "@hugeicons/react";
 import {
@@ -62,27 +61,6 @@ export const Command = () => {
 
   useHotkey(appHotkeys["palette.open"], openDialog);
 
-  const budgets = useActiveBudgets({}, { pageSize: 100 });
-
-  if (!budgets) {
-    return (
-      <CommandDialog
-        className={instantDialog}
-        open={isOpen}
-        onOpenChange={(open) => (open ? openDialog() : closeDialog())}
-      >
-        <ClosePaletteHotkey />
-        <CommandInput placeholder="Type a command or search..." />
-        <CommandList>
-          <CommandEmpty>No results found.</CommandEmpty>
-          <div className="flex h-32 w-full items-center justify-center">
-            <Spinner />
-          </div>
-        </CommandList>
-      </CommandDialog>
-    );
-  }
-
   return (
     <CommandDialog
       className={instantDialog}
@@ -93,7 +71,7 @@ export const Command = () => {
       <CommandInput placeholder="Type a command or search..." />
       <CommandList>
         <CommandEmpty>No results found.</CommandEmpty>
-        <Budgets budgets={budgets} />
+        <Budgets />
         <CommandSeparator />
         <CommandGroup heading="General">
           <CommandItem
@@ -186,17 +164,13 @@ const ClosePaletteHotkey = () => {
   return null;
 };
 
-const Budgets = ({
-  budgets,
-}: {
-  budgets: {
-    results: { id: string; title: string; icon: string | null }[];
-  };
-}) => {
+// Rendered only while the palette is open, so the list fetches only then.
+const Budgets = () => {
   const navigate = useNavigate();
   const closeDialog = useCommandDialogStore((state) => state.closeDialog);
+  const budgets = useActiveBudgets({}, { pageSize: 100 });
 
-  if (!budgets || budgets.results.length === 0) {
+  if (budgets.results.length === 0) {
     return null;
   }
 

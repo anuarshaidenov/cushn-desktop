@@ -1,8 +1,16 @@
-import { queryOptions, useQuery } from "@tanstack/react-query";
+import {
+  queryOptions,
+  useMutation,
+  useQuery,
+  useQueryClient,
+} from "@tanstack/react-query";
+import type { ArgsOf, Success } from "@shared/api";
 import type { Id } from "@shared/domain";
+import type { CushnError } from "@shared/errors";
 import { cushn } from "./client";
+import { reorderCachedExpenses } from "./expenseOrder";
 import { queryKeys } from "./keys";
-import { useInvalidatingMutation } from "./mutation";
+import { invalidateRoots, useInvalidatingMutation } from "./mutation";
 import { useUndoableMutation } from "./undoable";
 
 /** Query option factories, for route loaders. */
@@ -65,7 +73,18 @@ export function useRestoreExpenses() {
   return useInvalidatingMutation(cushn.expenses.restoreMany, ["expenses", "home"]);
 }
 
-/** `orderedIds`: one allocation's full list after a drag; sets `order = index`. */
+/** `orderedIds`: one allocation's full list after a drag; sets `order = index`. The cached list moves at once and rolls back on failure. */
 export function useReorderExpenses() {
-  return useInvalidatingMutation(cushn.expenses.reorder, ["expenses"]);
+  const queryClient = useQueryClient();
+  return useMutation<
+    Success,
+    CushnError,
+    ArgsOf<"expenses", "reorder">,
+    () => void
+  >({
+    mutationFn: cushn.expenses.reorder,
+    onMutate: ({ orderedIds }) => reorderCachedExpenses(queryClient, orderedIds),
+    onError: (_error, _args, rollback) => rollback?.(),
+    onSettled: () => invalidateRoots(queryClient, ["expenses"]),
+  });
 }

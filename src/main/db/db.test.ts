@@ -1,5 +1,7 @@
+import { cpSync, mkdtempSync, readFileSync, rmSync, writeFileSync } from "node:fs";
+import { tmpdir } from "node:os";
 import { resolve } from "node:path";
-import { and, asc, eq, sql } from "drizzle-orm";
+import { and, asc, eq, inArray, sql } from "drizzle-orm";
 import type { SQLiteTable } from "drizzle-orm/sqlite-core";
 import { afterEach, beforeEach, describe, expect, expectTypeOf, it } from "vitest";
 import {
@@ -36,6 +38,7 @@ import {
 } from "./schema";
 import { roundMoney, sumsTo100 } from "@shared/money";
 import { getLatest } from "../repositories/budgets";
+import { expectSearchIndexInSync } from "../repositories/budgets.fixtures";
 import * as home from "../repositories/home";
 import { listFavorites } from "../repositories/views";
 import { budgetTitleFtsQuery, budgetTitleMatches } from "./search";
@@ -113,6 +116,7 @@ describe("migrations", () => {
         "budgets_fts_after_delete",
         "budgets_fts_after_insert",
         "budgets_fts_after_update",
+        "budgets_fts_rowids",
         "expenses",
         "template_categories",
         "templates",
@@ -346,9 +350,7 @@ describe("seed", () => {
     expect(count(templates) + count(budgetLabels) + count(budgetViews) + count(budgets)).toBe(0);
   });
 
-  it("only seeds once across reopening a file database", async () => {
-    const { mkdtempSync, rmSync } = await import("node:fs");
-    const { tmpdir } = await import("node:os");
+  it("only seeds once across reopening a file database", () => {
     const dir = mkdtempSync(resolve(tmpdir(), "cushn-db-test-"));
     try {
       const file = resolve(dir, "cushn.db");
@@ -508,6 +510,57 @@ describe("budget title search (FTS5)", () => {
 
     handle.db.delete(budgets).where(eq(budgets.id, budget.id)).run();
     expect(handle.sqlite.prepare("select count(*) from budgets_fts").pluck().get()).toBe(2);
+    expectSearchIndexInSync(handle.sqlite);
+  });
+
+  it("keeps one index row per budget across inserts, renames and bulk deletes", () => {
+    const titles = Array.from({ length: 50 }, (_, i) => `Bulk ${i}`);
+    const rows = handle.db
+      .insert(budgets)
+      .values(titles.map((title) => ({ title, currency: "usd" })))
+      .returning()
+      .all();
+    expectSearchIndexInSync(handle.sqlite);
+
+    handle.db
+      .update(budgets)
+      .set({ title: sql`'Renamed ' || ${budgets.title}` })
+      .where(inArray(budgets.id, rows.slice(0, 10).map((b) => b.id)))
+      .run();
+    expectSearchIndexInSync(handle.sqlite);
+    expect(search("renamed")).toHaveLength(10);
+
+    handle.db.delete(budgets).where(inArray(budgets.id, rows.slice(5, 40).map((b) => b.id))).run();
+    expectSearchIndexInSync(handle.sqlite);
+    expect(search("renamed")).toHaveLength(5);
+    expect(search("bulk")).toHaveLength(15);
+
+    // A freed index rowid is reused by the next budget without touching the others.
+    handle.db.insert(budgets).values({ title: "Bulk again", currency: "usd" }).run();
+    expectSearchIndexInSync(handle.sqlite);
+    expect(search("again")).toEqual(["Bulk again"]);
+
+    handle.db.delete(budgets).run();
+    expectSearchIndexInSync(handle.sqlite);
+  });
+
+  it("stays in sync after VACUUM renumbers the budgets' rowids", () => {
+    const [first] = handle.db.select().from(budgets).orderBy(asc(budgets.createdAt)).all();
+    handle.db.delete(budgets).where(eq(budgets.id, first.id)).run();
+    handle.db.insert(budgets).values({ title: "After the gap", currency: "usd" }).run();
+    handle.sqlite.exec("VACUUM");
+
+    for (const budget of handle.db.select().from(budgets).all()) {
+      handle.db
+        .update(budgets)
+        .set({ title: `${budget.title} v2` })
+        .where(eq(budgets.id, budget.id))
+        .run();
+    }
+    expectSearchIndexInSync(handle.sqlite);
+    expect(search("gap v2")).toEqual(["After the gap v2"]);
+    handle.db.delete(budgets).where(eq(budgets.title, "After the gap v2")).run();
+    expectSearchIndexInSync(handle.sqlite);
   });
 
   it("treats FTS syntax in user input as plain text", () => {
@@ -518,6 +571,58 @@ describe("budget title search (FTS5)", () => {
       expect(() => search(input)).not.toThrow();
     }
     expect(search("50/30")).toEqual(["Your first 50/30/20"]);
+  });
+});
+
+describe("the budgets_fts_rowids migration", () => {
+  it("rebuilds the search index of an existing database from its budgets", () => {
+    const dir = mkdtempSync(resolve(tmpdir(), "cushn-fts-migration-test-"));
+    try {
+      const previous = resolve(dir, "drizzle");
+      cpSync(migrationsFolder, previous, { recursive: true });
+      const journalPath = resolve(previous, "meta/_journal.json");
+      const journal = JSON.parse(readFileSync(journalPath, "utf8")) as {
+        entries: { tag: string }[];
+      };
+      const index = journal.entries.findIndex((entry) => entry.tag.endsWith("_budgets_fts_rowids"));
+      expect(index).toBeGreaterThan(0);
+      journal.entries = journal.entries.slice(0, index);
+      writeFileSync(journalPath, JSON.stringify(journal));
+
+      const file = resolve(dir, "cushn.db");
+      const before = openDatabase(file, { migrationsFolder: previous });
+      const [renamed, removed] = before.db.select().from(budgets).orderBy(asc(budgets.id)).all();
+      before.db
+        .update(budgets)
+        .set({ title: "Café renamed" })
+        .where(eq(budgets.id, renamed.id))
+        .run();
+      before.db.delete(budgets).where(eq(budgets.id, removed.id)).run();
+      before.db.insert(budgets).values({ title: "Added before the update", currency: "usd" }).run();
+      before.close();
+
+      const after = openDatabase(file, { migrationsFolder });
+      try {
+        expectSearchIndexInSync(after.sqlite);
+        const titles = (input: string) =>
+          after.db
+            .select({ title: budgets.title })
+            .from(budgets)
+            .where(budgetTitleMatches(input))
+            .all()
+            .map((b) => b.title);
+        expect(titles("cafe ren")).toEqual(["Café renamed"]);
+        expect(titles("added")).toEqual(["Added before the update"]);
+
+        after.db.delete(budgets).where(eq(budgets.id, renamed.id)).run();
+        after.db.insert(budgets).values({ title: "Added after", currency: "usd" }).run();
+        expectSearchIndexInSync(after.sqlite);
+      } finally {
+        after.close();
+      }
+    } finally {
+      rmSync(dir, { recursive: true, force: true });
+    }
   });
 });
 

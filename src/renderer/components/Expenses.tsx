@@ -1,4 +1,12 @@
-import { useEffect, useId, useRef, useState } from "react";
+import {
+  memo,
+  useCallback,
+  useEffect,
+  useId,
+  useReducer,
+  useRef,
+  useState,
+} from "react";
 import { Input } from "./ui/input";
 import {
   InputGroup,
@@ -12,7 +20,7 @@ import { useReorderExpenses, useUpdateExpense } from "@/data/expenses";
 import { useDebounce } from "@uidotdev/usehooks";
 import { toast } from "@/components/ui/toast";
 import React from "react";
-import { ExpenseActions } from "./ExpenseActions";
+import { ExpenseActions, SelectedExpensesContext } from "./ExpenseActions";
 import { useDeleteExpensesWithUndo } from "@/hooks/use-delete-expenses";
 import {
   DndContext,
@@ -45,6 +53,10 @@ import { useHotkey } from "@tanstack/react-hotkeys";
 import { ShortcutChip } from "./ShortcutKeys";
 import { Spinner } from "./ui/spinner";
 import { appHotkeys } from "@/lib/hotkeys";
+import {
+  expenseSelectionReducer,
+  noExpenseSelection,
+} from "@/lib/expenseSelection";
 
 type Props = {
   expenses: ExpenseItem[];
@@ -54,96 +66,62 @@ export const Expenses = (props: Props) => {
   const { mutate: reorder } = useReorderExpenses();
   const { deleteExpenses, isPending: isDeleting } = useDeleteExpensesWithUndo();
   const selectAllId = useId();
-  const [items, setItems] = useState(props.expenses);
-  const [isSelectMode, setIsSelectMode] = useState(false);
-  const [selectedIds, setSelectedIds] = useState<Set<Id<"expenses">>>(
-    () => new Set(),
+  const [reordered, setReordered] = useState<{
+    from: ExpenseItem[];
+    items: ExpenseItem[];
+  } | null>(null);
+  // A drop shows its order at once; the next list from the cache takes over.
+  const items =
+    reordered?.from === props.expenses ? reordered.items : props.expenses;
+  const [selection, dispatch] = useReducer(
+    expenseSelectionReducer,
+    noExpenseSelection,
   );
-  const rangeAnchorIndex = useRef<number | null>(null);
+  const { isSelectMode } = selection;
+  // Ids that left the list (deleted elsewhere) drop out here, and from the state on the next check.
+  const selectedItems = items.filter((i) => selection.selectedIds.has(i.id));
+  const selectedIds = selectedItems.map((i) => i.id);
 
-  useEffect(() => setItems(props.expenses), [props.expenses]);
-
+  // Read by the row callbacks, which stay stable so memoised rows skip re-rendering.
+  const latestItems = useRef(items);
   useEffect(() => {
-    if (!isSelectMode) {
-      rangeAnchorIndex.current = null;
-      setSelectedIds(new Set());
-    }
-  }, [isSelectMode]);
+    latestItems.current = items;
+  });
 
-  useEffect(() => {
-    const valid = new Set(props.expenses.map((e) => e.id));
-    setSelectedIds((prev) => {
-      const next = new Set<Id<"expenses">>();
-      for (const id of prev) {
-        if (valid.has(id)) next.add(id);
-      }
-      return next;
-    });
-  }, [props.expenses]);
+  const toggleSelectMode = () => dispatch({ type: "toggleMode" });
 
-  const toggleSelectMode = () => setIsSelectMode((prev) => !prev);
+  const selectRow = useCallback(
+    (id: Id<"expenses">, index: number) =>
+      dispatch({ type: "selectRow", id, index }),
+    [],
+  );
 
-  const enterSelectModeWithExpense = (id: Id<"expenses">) => {
-    setIsSelectMode(true);
-    setSelectedIds((prev) => {
-      const next = new Set(prev);
-      next.add(id);
-      return next;
-    });
-    const idx = items.findIndex((i) => i.id === id);
-    if (idx !== -1) rangeAnchorIndex.current = idx;
-  };
+  const checkRow = useCallback(
+    (id: Id<"expenses">, index: number, shiftKey: boolean, checked: boolean) =>
+      dispatch({
+        type: "check",
+        id,
+        index,
+        shiftKey,
+        checked,
+        ids: latestItems.current.map((i) => i.id),
+      }),
+    [],
+  );
 
-  const setExpenseSelected = (id: Id<"expenses">, selected: boolean) => {
-    setSelectedIds((prev) => {
-      const next = new Set(prev);
-      if (selected) next.add(id);
-      else next.delete(id);
-      return next;
-    });
-  };
-
-  const handleExpenseCheckboxChange = (
-    id: Id<"expenses">,
-    index: number,
-    shiftKey: boolean,
-    checked: boolean,
-  ) => {
-    if (shiftKey && rangeAnchorIndex.current !== null) {
-      const anchor = rangeAnchorIndex.current;
-      const lo = Math.min(anchor, index);
-      const hi = Math.max(anchor, index);
-      setSelectedIds((prev) => {
-        const next = new Set(prev);
-        for (let i = lo; i <= hi; i++) {
-          next.add(items[i].id);
-        }
-        return next;
-      });
-      rangeAnchorIndex.current = index;
-      return;
-    }
-    setExpenseSelected(id, checked);
-    rangeAnchorIndex.current = index;
-  };
-  const selectAllInList = () => {
-    setSelectedIds(new Set(items.map((i) => i.id)));
-  };
-  const deselectAllInList = () => {
-    setSelectedIds(new Set());
-  };
+  const selectAllInList = () =>
+    dispatch({ type: "set", ids: items.map((i) => i.id) });
+  const deselectAllInList = () => dispatch({ type: "set", ids: [] });
 
   const copyToClipboard = useExpenseClipboardStore((state) => state.copy);
 
   const handleCopy = () => {
-    if (selectedIds.size === 0) return;
-    const selected = items
-      .filter((i) => selectedIds.has(i.id))
-      .map(({ title, amount, description }) => ({
-        title,
-        amount,
-        description: description ?? undefined,
-      }));
+    if (selectedItems.length === 0) return;
+    const selected = selectedItems.map(({ title, amount, description }) => ({
+      title,
+      amount,
+      description: description ?? undefined,
+    }));
     copyToClipboard(selected);
     toast.add({
       type: "success",
@@ -152,13 +130,13 @@ export const Expenses = (props: Props) => {
   };
 
   const handleDelete = async () => {
-    if (selectedIds.size === 0 || isDeleting) return;
-    if (await deleteExpenses(Array.from(selectedIds))) deselectAllInList();
+    if (selectedIds.length === 0 || isDeleting) return;
+    if (await deleteExpenses(selectedIds)) deselectAllInList();
   };
 
-  const selectedCount = selectedIds.size;
-  const allSelected = items.length > 0 && selectedIds.size === items.length;
-  const someSelected = selectedIds.size > 0 && selectedIds.size < items.length;
+  const selectedCount = selectedIds.length;
+  const allSelected = items.length > 0 && selectedCount === items.length;
+  const someSelected = selectedCount > 0 && selectedCount < items.length;
 
   const toggleSelectAll = () => {
     if (allSelected) deselectAllInList();
@@ -201,7 +179,7 @@ export const Expenses = (props: Props) => {
       const oldIndex = items.findIndex((i) => i.id === active.id);
       const newIndex = items.findIndex((i) => i.id === over.id);
       const newItems = arrayMove(items, oldIndex, newIndex);
-      setItems(newItems);
+      setReordered({ from: props.expenses, items: newItems });
 
       reorder({
         orderedIds: newItems.map((i: { id: Id<"expenses"> }) => i.id),
@@ -297,52 +275,51 @@ export const Expenses = (props: Props) => {
           </div>
         </div>
       )}
-      <SortableContext items={items} strategy={verticalListSortingStrategy}>
-        {items?.map((exp, index) => (
-          <Expense
-            key={exp.id}
-            expense={exp}
-            rowIndex={index}
-            isSelectMode={isSelectMode}
-            isSelected={selectedIds.has(exp.id)}
-            onExpenseCheckboxChange={handleExpenseCheckboxChange}
-            onEnterSelectMode={enterSelectModeWithExpense}
-            selectedIds={selectedIds}
-            onCopySelected={handleCopy}
-            onDeleteSelectedSuccess={deselectAllInList}
-          />
-        ))}
-      </SortableContext>
+      <SelectedExpensesContext
+        value={{
+          ids: selectedIds,
+          copy: handleCopy,
+          clear: deselectAllInList,
+        }}
+      >
+        <SortableContext items={items} strategy={verticalListSortingStrategy}>
+          {items.map((exp, index) => (
+            <Expense
+              key={exp.id}
+              expense={exp}
+              rowIndex={index}
+              isSelectMode={isSelectMode}
+              isSelected={selection.selectedIds.has(exp.id)}
+              onCheck={checkRow}
+              onSelect={selectRow}
+            />
+          ))}
+        </SortableContext>
+      </SelectedExpensesContext>
     </DndContext>
   );
 };
 
-export const Expense = ({
+export const Expense = memo(function Expense({
   expense,
   rowIndex,
   isSelectMode,
   isSelected,
-  onExpenseCheckboxChange,
-  onEnterSelectMode,
-  selectedIds,
-  onCopySelected,
-  onDeleteSelectedSuccess,
+  onCheck,
+  onSelect,
 }: {
   expense: ExpenseItem;
   rowIndex: number;
   isSelectMode: boolean;
   isSelected: boolean;
-  onExpenseCheckboxChange: (
+  onCheck: (
     id: Id<"expenses">,
     index: number,
     shiftKey: boolean,
     checked: boolean,
   ) => void;
-  onEnterSelectMode: (expenseId: Id<"expenses">) => void;
-  selectedIds: Set<Id<"expenses">>;
-  onCopySelected: () => void;
-  onDeleteSelectedSuccess: () => void;
-}) => {
+  onSelect: (id: Id<"expenses">, index: number) => void;
+}) {
   const [expenseTitle, setExpenseTitle] = useState(expense.title);
   const [expenseAmount, setExpenseAmount] = useState(expense.amount);
   const debouncedTitle = useDebounce(expenseTitle, 500);
@@ -419,7 +396,7 @@ export const Expense = ({
             onCheckedChange={(checked) => {
               const shiftKey = checkboxShiftRef.current;
               checkboxShiftRef.current = false;
-              onExpenseCheckboxChange(expense.id, rowIndex, shiftKey, checked);
+              onCheck(expense.id, rowIndex, shiftKey, checked);
             }}
             aria-label={isSelected ? "Deselect expense" : "Select expense"}
           />
@@ -452,12 +429,9 @@ export const Expense = ({
       </div>
       <ExpenseActions
         expense={expense}
-        onEnterSelectMode={onEnterSelectMode}
+        onEnterSelectMode={() => onSelect(expense.id, rowIndex)}
         isSelectMode={isSelectMode}
-        selectedIds={selectedIds}
-        onCopySelected={onCopySelected}
-        onDeleteSelectedSuccess={onDeleteSelectedSuccess}
       />
     </div>
   );
-};
+});
