@@ -19,24 +19,31 @@ import { useDuplicateExpense } from "@/data/expenses";
 import { useDeleteExpensesWithUndo } from "@/hooks/use-delete-expenses";
 import { toast } from "@/components/ui/toast";
 import { Spinner } from "./ui/spinner";
-import { useState } from "react";
+import { createContext, use, useState } from "react";
+
+type SelectedExpenses = {
+  /** In list order. */
+  ids: Id<"expenses">[];
+  copy: () => void;
+  /** Called once the selection is deleted. */
+  clear: () => void;
+};
+
+/** The list's selection, read only by an open menu, so selecting doesn't re-render every row. */
+export const SelectedExpensesContext = createContext<SelectedExpenses | null>(
+  null,
+);
 
 type Props = {
   expense: ExpenseItem;
-  onEnterSelectMode?: (expenseId: Id<"expenses">) => void;
+  onEnterSelectMode?: () => void;
   isSelectMode?: boolean;
-  selectedIds?: Set<Id<"expenses">>;
-  onCopySelected?: () => void;
-  onDeleteSelectedSuccess?: () => void;
 };
 
 export const ExpenseActions = ({
   expense,
   onEnterSelectMode,
   isSelectMode,
-  selectedIds,
-  onCopySelected,
-  onDeleteSelectedSuccess,
 }: Props) => {
   const [isPending, setIsPending] = useState(false);
 
@@ -59,10 +66,7 @@ export const ExpenseActions = ({
       </DropdownMenuTrigger>
       <DropdownMenuContent>
         {onEnterSelectMode && !isSelectMode && (
-          <DropdownMenuItem
-            onClick={() => onEnterSelectMode(expense.id)}
-            disabled={isPending}
-          >
+          <DropdownMenuItem onClick={onEnterSelectMode} disabled={isPending}>
             <HugeiconsIcon icon={CheckmarkSquare02Icon} strokeWidth={2} />{" "}
             Select
           </DropdownMenuItem>
@@ -74,25 +78,12 @@ export const ExpenseActions = ({
             expenseId={expense.id}
           />
         )}
-        {isSelectMode &&
-          onCopySelected &&
-          selectedIds &&
-          selectedIds.size > 0 && (
-            <DropdownMenuItem
-              onClick={() => onCopySelected()}
-              disabled={isPending}
-            >
-              <HugeiconsIcon icon={Copy01Icon} strokeWidth={2} /> Copy to
-              clipboard ({selectedIds.size})
-            </DropdownMenuItem>
-          )}
+        {isSelectMode && <CopySelectedItem disabled={isPending} />}
         <DeleteItem
           onDelete={() => setIsPending(true)}
           onSettled={() => setIsPending(false)}
           expenseId={expense.id}
-          selectedIds={selectedIds}
           isSelectMode={isSelectMode}
-          onDeleteSelectedSuccess={onDeleteSelectedSuccess}
         />
       </DropdownMenuContent>
     </DropdownMenu>
@@ -129,36 +120,46 @@ const DuplicateItem = ({
   );
 };
 
+const CopySelectedItem = (props: { disabled: boolean }) => {
+  const selected = use(SelectedExpensesContext);
+  if (!selected || selected.ids.length === 0) return null;
+
+  return (
+    <DropdownMenuItem onClick={() => selected.copy()} disabled={props.disabled}>
+      <HugeiconsIcon icon={Copy01Icon} strokeWidth={2} /> Copy to clipboard (
+      {selected.ids.length})
+    </DropdownMenuItem>
+  );
+};
+
 const DeleteItem = ({
   expenseId,
   onDelete,
   onSettled,
-  selectedIds,
   isSelectMode,
-  onDeleteSelectedSuccess,
 }: {
   expenseId: Id<"expenses">;
   onDelete: () => void;
   onSettled: () => void;
-  selectedIds?: Set<Id<"expenses">>;
   isSelectMode?: boolean;
-  onDeleteSelectedSuccess?: () => void;
 }) => {
+  const selected = use(SelectedExpensesContext);
   const { deleteExpenses, isPending } = useDeleteExpensesWithUndo();
+  const selectedIds = isSelectMode ? (selected?.ids ?? []) : [];
+  const hasSelection = selectedIds.length > 0;
+
   const handleDelete = async () => {
     onDelete();
-    const hasSelection = isSelectMode && selectedIds && selectedIds.size > 0;
-    const expenseIds = hasSelection ? Array.from(selectedIds) : [expenseId];
+    const expenseIds = hasSelection ? selectedIds : [expenseId];
     if ((await deleteExpenses(expenseIds)) && hasSelection) {
-      onDeleteSelectedSuccess?.();
+      selected?.clear();
     }
     onSettled();
   };
 
-  const deleteLabel =
-    isSelectMode && selectedIds && selectedIds.size > 0
-      ? `Delete selected (${selectedIds.size})`
-      : "Delete";
+  const deleteLabel = hasSelection
+    ? `Delete selected (${selectedIds.length})`
+    : "Delete";
 
   return (
     <DropdownMenuItem

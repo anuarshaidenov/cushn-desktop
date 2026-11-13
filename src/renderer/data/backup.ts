@@ -22,7 +22,7 @@ export function useImportBackup() {
     const result = await cushn.backup.import(args);
     // The history's entries point at rows the import replaced.
     undoHistory.clear();
-    // Unmounted queries may point at rows the import removed; refetching them would only retry NOT_FOUND.
+    // Unmounted queries hold pre-import data, maybe of rows the import removed; no screen should mount on it.
     queryClient.removeQueries({ type: "inactive" });
     await invalidateRoots(queryClient, ALL_QUERY_ROOTS);
     return result;

@@ -13,7 +13,7 @@ import { useBudgetsView } from "@/hooks/useBudgetsView";
 import { BudgetsViewSwitch } from "@/components/BudgetsViewSwitch";
 import { BudgetsSearch } from "@/components/BudgetsSearch";
 import { BudgetAppliedFilters } from "@/components/BudgetAppliedFilters";
-import { Activity } from "react";
+import { useMemo } from "react";
 import { AddBudgetButton } from "@/components/AddBudgetButton";
 import { useSidebar } from "@/components/ui/sidebar";
 import { useDebounce } from "@uidotdev/usehooks";
@@ -79,7 +79,9 @@ function RouteComponent() {
     (currencies && currencies.length > 0),
   );
 
-  const listSearch = stripFromViewId(search);
+  // Stable while the search is, so memoised cards and rows skip re-rendering.
+  const listSearch = useMemo(() => stripFromViewId(search), [search]);
+  const isGrid = view === "grid";
 
   return (
     <HotkeysProvider scope={hotkeyScopes.budgetsList}>
@@ -101,57 +103,50 @@ function RouteComponent() {
         </DashboardHeaderWrapper>
         <BudgetAppliedFilters />
         <BudgetSelectionProvider budgets={budgets}>
-          <Activity mode={view === "grid" ? "visible" : "hidden"}>
-            {/* DashboardContainer's classes: the marquee needs the scroll container's own element. */}
-            <BudgetMarqueeArea className="container mx-auto h-full flex-1 overflow-auto p-4 pb-20 md:p-10 md:pt-6">
-              {isLoading ? (
+          {/* Keyed so each view gets its own scroll container, starting at the top. */}
+          <BudgetMarqueeArea
+            key={view}
+            className={
+              isGrid
+                ? // DashboardContainer's classes: the marquee needs the scroll container's own element.
+                  "container mx-auto h-full flex-1 overflow-auto p-4 pb-20 md:p-10 md:pt-6"
+                : "h-full flex-1 overflow-auto pb-20"
+            }
+          >
+            {isLoading ? (
+              isGrid ? (
                 <BudgetsGridViewSkeleton />
-              ) : filterApplied && !budgets?.length ? (
-                <BudgetsGridViewNoMatchingFiltersView />
-              ) : !budgets?.length ? (
-                <BudgetsGridViewEmptyState />
               ) : (
-                <>
-                  <BudgetsGridView
-                    budgets={budgets}
-                    currentSearch={listSearch}
-                  />
+                <div className="flex h-72 flex-col items-center justify-center">
+                  <Spinner />
+                </div>
+              )
+            ) : filterApplied && !budgets?.length ? (
+              <BudgetsGridViewNoMatchingFiltersView />
+            ) : !budgets?.length ? (
+              <BudgetsGridViewEmptyState />
+            ) : isGrid ? (
+              <>
+                <BudgetsGridView budgets={budgets} currentSearch={listSearch} />
+                <LoadMoreButton
+                  status={status}
+                  loadMore={loadMore}
+                  numItems={LOAD_AMOUNT}
+                />
+              </>
+            ) : (
+              <>
+                <BudgetsListView budgets={budgets} currentSearch={listSearch} />
+                <div className="px-4 pt-4">
                   <LoadMoreButton
                     status={status}
                     loadMore={loadMore}
                     numItems={LOAD_AMOUNT}
                   />
-                </>
-              )}
-            </BudgetMarqueeArea>
-          </Activity>
-          <Activity mode={view === "list" ? "visible" : "hidden"}>
-            <BudgetMarqueeArea className="h-full flex-1 overflow-auto pb-20">
-              {isLoading ? (
-                <div className="flex h-72 flex-col items-center justify-center">
-                  <Spinner />
                 </div>
-              ) : filterApplied && !budgets?.length ? (
-                <BudgetsGridViewNoMatchingFiltersView />
-              ) : !budgets?.length ? (
-                <BudgetsGridViewEmptyState />
-              ) : (
-                <>
-                  <BudgetsListView
-                    budgets={budgets}
-                    currentSearch={listSearch}
-                  />
-                  <div className="px-4 pt-4">
-                    <LoadMoreButton
-                      status={status}
-                      loadMore={loadMore}
-                      numItems={LOAD_AMOUNT}
-                    />
-                  </div>
-                </>
-              )}
-            </BudgetMarqueeArea>
-          </Activity>
+              </>
+            )}
+          </BudgetMarqueeArea>
         </BudgetSelectionProvider>
       </div>
     </HotkeysProvider>

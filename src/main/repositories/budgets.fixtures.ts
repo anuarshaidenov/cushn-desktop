@@ -3,6 +3,8 @@
  * through Drizzle, so the tests depend on no other repository.
  */
 import { resolve } from "node:path";
+import type Database from "better-sqlite3";
+import { expect } from "vitest";
 import { type DatabaseHandle, openDatabase } from "../db";
 import {
   type NewBudgetAllocationRow,
@@ -91,4 +93,24 @@ export function insertAllocation(
 
 export function insertExpense(db: Db, values: NewExpenseRow) {
   return db.insert(expenses).values(values).returning().get();
+}
+
+/**
+ * The search index holds one row per budget under its current title, reached
+ * through `budgets_fts_rowids` the way the triggers reach it.
+ */
+export function expectSearchIndexInSync(sqlite: Database.Database): void {
+  const rows = (query: string) => sqlite.prepare(query).raw().all();
+  const expected = rows("select id, title from budgets order by id");
+  expect(
+    rows(
+      `select k.budget_id, f.title from budgets_fts_rowids k
+       join budgets_fts f on f.rowid = k.fts_rowid and f.budget_id = k.budget_id
+       order by k.budget_id`,
+    ),
+  ).toEqual(expected);
+  expect(sqlite.prepare("select count(*) from budgets_fts").pluck().get()).toBe(expected.length);
+  expect(sqlite.prepare("select count(*) from budgets_fts_rowids").pluck().get()).toBe(
+    expected.length,
+  );
 }

@@ -1,9 +1,20 @@
-import { queryOptions, useQuery } from "@tanstack/react-query";
-import type { ActiveBudgetFilters, BudgetListFilters } from "@shared/api";
+import {
+  queryOptions,
+  useMutation,
+  useQuery,
+  useQueryClient,
+} from "@tanstack/react-query";
+import type {
+  ActiveBudgetFilters,
+  ArgsOf,
+  BudgetListFilters,
+  Success,
+} from "@shared/api";
 import type { Id } from "@shared/domain";
+import type { CushnError } from "@shared/errors";
 import { cushn } from "./client";
 import { queryKeys } from "./keys";
-import { useInvalidatingMutation } from "./mutation";
+import { invalidateRoots, useInvalidatingMutation } from "./mutation";
 import { pagedQueryOptions, usePaginatedQuery } from "./pagination";
 import { useUndoableMutation } from "./undoable";
 
@@ -74,9 +85,19 @@ export function useCreateBudget() {
   return useInvalidatingMutation(cushn.budgets.create, ["budgets", "home"]);
 }
 
-/** Patches only the given fields; a new `income` recomputes allocations. Expenses refresh: their DTOs carry the currency. */
+/** Patches only the given fields; a new `income` recomputes allocations. The budget's grouped expenses refresh: their DTOs carry the currency. */
 export function useUpdateBudget() {
-  return useInvalidatingMutation(cushn.budgets.update, ["budgets", "expenses", "home"]);
+  const queryClient = useQueryClient();
+  return useMutation<Success, CushnError, ArgsOf<"budgets", "update">>({
+    mutationFn: cushn.budgets.update,
+    onSuccess: (_, { budgetId }) =>
+      Promise.all([
+        invalidateRoots(queryClient, ["budgets", "home"]),
+        queryClient.invalidateQueries({
+          queryKey: queryKeys.expenses.grouped(budgetId),
+        }),
+      ]),
+  });
 }
 
 /** Sets the income and recomputes every allocation amount. */

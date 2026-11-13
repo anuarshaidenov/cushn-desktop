@@ -247,8 +247,10 @@ describe("backup.import", () => {
 
     const safetyCopyPath = join(safetyCopyDir(), safetyCopyName);
     expect(result).toEqual({ ok: true, data: { counts: fixtureCounts, safetyCopyPath } });
-    const safetyCopy = parseBackupText(readFileSync(safetyCopyPath, "utf8"));
+    const safetyCopyText = readFileSync(safetyCopyPath, "utf8");
+    const safetyCopy = parseBackupText(safetyCopyText);
     expect(safetyCopy.data).toEqual(before.data);
+    expect(safetyCopyText).toBe(serializeBackup(safetyCopy, { compact: true }));
     expect(backupRepository.counts(handle.db)).toEqual(fixtureCounts);
   });
 

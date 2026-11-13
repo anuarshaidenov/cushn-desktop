@@ -64,7 +64,14 @@ export function openDatabase(filePath: string, options: OpenDatabaseOptions): Da
       db,
       sqlite,
       close: () => {
-        if (sqlite.open) sqlite.close();
+        if (!sqlite.open) return;
+        try {
+          // Refreshes the query planner's statistics where they went stale; bounded work.
+          sqlite.pragma("optimize");
+        } catch (error) {
+          console.error("Failed to optimize the database", error);
+        }
+        sqlite.close();
       },
     };
   } catch (error) {

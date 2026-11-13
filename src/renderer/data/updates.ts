@@ -8,9 +8,8 @@ export const updatesQueries = {
   status: () =>
     queryOptions({
       queryKey: queryKeys.updates.status(),
-      queryFn: () => cushn.updates.status(),
       // Main's change event refetches it once an update has downloaded.
-      staleTime: Infinity,
+      queryFn: () => cushn.updates.status(),
     }),
 };
 

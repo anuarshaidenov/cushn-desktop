@@ -18,7 +18,11 @@ import {
   CardHeader,
   CardTitle,
 } from "./ui/card";
-import { formatNumberWithSpaces, getCurrencySymbol } from "@/lib/utils";
+import {
+  formatNumberWithSpaces,
+  formatShortDate,
+  getCurrencySymbol,
+} from "@/lib/utils";
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -119,15 +123,11 @@ export const ArchivedBudgets = () => {
 
 const BudgetListItem = (props: { budget: Budget }) => {
   return (
-    <Card className="hover:bg-accent gap-3">
+    <Card className="gap-3 hover:bg-accent">
       <CardHeader className="">
         <CardTitle>{props.budget.title}</CardTitle>
         <CardDescription className="truncate text-xs tabular-nums">
-          {new Date(props.budget.createdAt).toLocaleDateString("en-US", {
-            month: "short",
-            day: "numeric",
-            year: "numeric",
-          })}
+          {formatShortDate(props.budget.createdAt)}
         </CardDescription>
         <CardAction className="-mt-1">
           <BudgetListItemActions budget={props.budget} />
@@ -135,7 +135,7 @@ const BudgetListItem = (props: { budget: Budget }) => {
       </CardHeader>
       <CardContent className="">
         <div className="flex flex-wrap items-center gap-2">
-          <span className="text-muted-foreground text-xs tabular-nums">
+          <span className="text-xs text-muted-foreground tabular-nums">
             {formatNumberWithSpaces(props.budget.income)}{" "}
             {getCurrencySymbol(props.budget.currency)}
           </span>

@@ -8,7 +8,7 @@ export const Route = createFileRoute("/dashboard/home")({
   component: RouteComponent,
   loader: ({ context }) =>
     context.queryClient
-      .ensureQueryData(homeQueries.summary())
+      .query(homeQueries.summary())
       .catch(() => undefined),
 });
 

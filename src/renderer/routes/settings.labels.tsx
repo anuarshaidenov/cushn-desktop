@@ -11,7 +11,7 @@ export const Route = createFileRoute("/settings/labels")({
   component: RouteComponent,
   loader: ({ context }) =>
     context.queryClient
-      .ensureQueryData(labelQueries.list())
+      .query(labelQueries.list())
       .catch(() => undefined),
 });
 

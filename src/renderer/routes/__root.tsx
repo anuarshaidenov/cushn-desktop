@@ -32,7 +32,7 @@ export const Route = createRootRouteWithContext<RouterContext>()({
   component: RootComponent,
   loader: ({ context }) =>
     context.queryClient
-      .ensureQueryData(settingsQueries.get())
+      .query(settingsQueries.get())
       .catch(() => undefined),
   notFoundComponent: () => (
     <div className="flex min-h-svh flex-col items-center justify-center p-4">

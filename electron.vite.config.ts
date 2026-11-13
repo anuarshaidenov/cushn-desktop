@@ -42,6 +42,8 @@ export default defineConfig({
     resolve: { alias: sharedAlias },
   },
   renderer: {
+    // electron-vite leaves the renderer unminified by default.
+    build: { minify: true },
     resolve: {
       alias: {
         ...sharedAlias,

@@ -1,3 +1,4 @@
+import { lazy, Suspense } from "react";
 import type { Id } from "@shared/domain";
 import type {
   BudgetAllocationItem,
@@ -7,9 +8,19 @@ import type {
 import { BudgetIncome } from "./BudgetIncome";
 import { BudgetTitle } from "./BudgetTitle";
 import { BudgetAllocations } from "./BudgetAllocations";
-import { ExpensesAllocation } from "./ExpensesAllocation";
-import { BudgetDetailsRich } from "./BudgetDetailsRich";
 import { BudgetIcon } from "./BudgetIcon";
+
+// The editor and the chart weigh ~2 MB together, so they load after the page paints.
+const BudgetDetailsRich = lazy(() =>
+  import("./BudgetDetailsRich").then((module) => ({
+    default: module.BudgetDetailsRich,
+  })),
+);
+const ExpensesAllocation = lazy(() =>
+  import("./ExpensesAllocation").then((module) => ({
+    default: module.ExpensesAllocation,
+  })),
+);
 
 type Props = {
   budget: BudgetDetail;
@@ -29,10 +40,16 @@ export const Budget = (props: Props) => {
           />
           <BudgetTitle budgetId={props.budget.id} title={props.budget.title} />
         </div>
-        <BudgetDetailsRich
-          budgetId={props.budget.id}
-          description={props.budget.description}
-        />
+        <Suspense
+          fallback={
+            <BudgetDetailsFallback description={props.budget.description} />
+          }
+        >
+          <BudgetDetailsRich
+            budgetId={props.budget.id}
+            description={props.budget.description}
+          />
+        </Suspense>
       </div>
       <div className="mb-10">
         <BudgetIncome
@@ -47,7 +64,27 @@ export const Budget = (props: Props) => {
           expensesByAllocation={props.expensesByAllocation}
         />
       </div>
-      <ExpensesAllocation budget={props.budget} />
+      {/* Last on the page and often empty, so it reserves no space while it loads. */}
+      <Suspense fallback={null}>
+        <ExpensesAllocation budget={props.budget} />
+      </Suspense>
     </div>
   );
 };
+
+/** Holds the editor's place: its empty placeholder, or the description's lines, hidden. */
+const BudgetDetailsFallback = (props: { description: string | null }) => (
+  <div className="tiptap mx-auto prose w-full max-w-none text-foreground dark:prose-invert prose-p:my-0">
+    {props.description ? (
+      <div aria-hidden className="invisible">
+        {props.description.split(/\n+/).map((line, index) => (
+          <p key={index}>{line}</p>
+        ))}
+      </div>
+    ) : (
+      <p className="is-editor-empty" data-placeholder="Add description">
+        <br />
+      </p>
+    )}
+  </div>
+);

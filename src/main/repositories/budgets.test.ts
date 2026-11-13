@@ -13,6 +13,7 @@ import {
 } from "../db/schema";
 import * as budgets from "./budgets";
 import {
+  expectSearchIndexInSync,
   insertAllocation,
   insertBudget,
   insertExpense,
@@ -1062,6 +1063,7 @@ describe("trashed budgets are invisible to normal reads and writes", () => {
 
     expect(handle.db.select().from(budgetsTable).all()).toEqual([]);
     expect(handle.db.select().from(expensesTable).all()).toEqual([]);
+    expectSearchIndexInSync(handle.sqlite);
   });
 });
 
@@ -1100,6 +1102,7 @@ describe("budgets.emptyTrash", () => {
     expect(handle.db.select({ id: expensesTable.id }).from(expensesTable).all()).toEqual([
       { id: kept.expense.id },
     ]);
+    expectSearchIndexInSync(handle.sqlite);
     expect(budgets.emptyTrash(handle.db)).toEqual({ deletedCount: 0 });
   });
 });
@@ -1135,6 +1138,7 @@ describe("budgets.purgeTrash", () => {
     ).toEqual([{ id: recent.id }, { id: live.id }]);
     expect(budgetRow(onTheLimit.id)).toBeUndefined();
     expect(handle.db.select().from(expensesTable).all()).toEqual([]);
+    expectSearchIndexInSync(handle.sqlite);
   });
 });
 

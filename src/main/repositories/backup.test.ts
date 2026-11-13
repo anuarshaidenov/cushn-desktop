@@ -21,6 +21,7 @@ import { appMeta, budgets as budgetsTable, userSettings } from "../db/schema";
 import { SEEDED_AT_KEY, seedDatabase } from "../db/seed";
 import * as backup from "./backup";
 import * as budgets from "./budgets";
+import { expectSearchIndexInSync } from "./budgets.fixtures";
 import * as expenses from "./expenses";
 import * as labels from "./labels";
 import * as settings from "./settings";
@@ -268,7 +269,9 @@ describe("backup.importAll", () => {
   });
 
   it("indexes imported titles for the budgets search", () => {
+    populate(target.db);
     backup.importAll(target.db, parseBackup(fixtureV1));
+    expectSearchIndexInSync(target.sqlite);
     const search = (term: string) =>
       budgets
         .listActive(target.db, { search: term, cursor: null, numItems: 25 })
@@ -384,6 +387,7 @@ describe("backup.addAll", () => {
     const file = parseBackup(fixtureV2);
 
     backup.addAll(target.db, file);
+    expectSearchIndexInSync(target.sqlite);
 
     const after = backup.exportAll(target.db, exportOptions);
     expect(after.data.budgets).toEqual(expect.arrayContaining(before.data.budgets));

@@ -1,11 +1,11 @@
 import { createHashHistory, createRouter } from "@tanstack/react-router";
-import { QueryClient } from "@tanstack/react-query";
 import { routeTree } from "./routeTree.gen";
+import { createQueryClient } from "./data/queryClient";
 import { DefaultCatchBoundary } from "./components/DefaultCatchBoundary";
 import { restoreLastPage, trackLastPage } from "./lib/lastPage";
 import { trackNavigation } from "./lib/navigationStack";
 
-export const queryClient = new QueryClient();
+export const queryClient = createQueryClient();
 
 restoreLastPage();
 // The packaged app loads from file://, so routes live in the URL hash.
@@ -19,6 +19,7 @@ export const router = createRouter({
   context: { queryClient, navigationTracker },
   defaultPreload: "intent",
   scrollRestoration: true,
+  // Query owns the cache: every navigation runs the loader, which fetches only invalidated queries.
   defaultPreloadStaleTime: 0,
   defaultErrorComponent: DefaultCatchBoundary,
 });

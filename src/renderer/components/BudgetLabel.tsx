@@ -1,4 +1,4 @@
-import { useMemo, type ReactNode } from "react";
+import type { ReactNode } from "react";
 import type { Id } from "@shared/domain";
 import { useSetBudgetLabel } from "@/data/budgets";
 import { useLabels } from "@/data/labels";
@@ -28,25 +28,33 @@ export const BudgetLabelOption = (props: { color: string; name: string }) => (
   </span>
 );
 
-export const useBudgetLabelItems = (
-  labels: { id: Id<"budgetLabels">; name: string; color: string }[] | undefined,
-) =>
-  useMemo(() => {
-    const items: Record<string, ReactNode> = {
-      none: <BudgetLabelOption color="#eee" name="No label" />,
-    };
-    for (const label of labels ?? []) {
+type Label = { id: Id<"budgetLabels">; name: string; color: string };
+
+const noLabelItems: Record<string, ReactNode> = {
+  none: <BudgetLabelOption color="#eee" name="No label" />,
+};
+// Keyed by the cached labels list, so every budget card shares one map.
+const itemsByLabels = new WeakMap<Label[], Record<string, ReactNode>>();
+
+export const budgetLabelItems = (labels: Label[] | undefined) => {
+  if (!labels) return noLabelItems;
+  let items = itemsByLabels.get(labels);
+  if (!items) {
+    items = { ...noLabelItems };
+    for (const label of labels) {
       items[label.id.toString()] = (
         <BudgetLabelOption color={label.color} name={label.name} />
       );
     }
-    return items;
-  }, [labels]);
+    itemsByLabels.set(labels, items);
+  }
+  return items;
+};
 
 export const BudgetLabel = (props: Props) => {
   const budgetId = props.budgetId;
   const { data: labelData } = useLabels();
-  const items = useBudgetLabelItems(labelData?.labels);
+  const items = budgetLabelItems(labelData?.labels);
   const { mutate, isPending, variables } = useSetBudgetLabel();
   const setLabel = (labelId: Id<"budgetLabels"> | null) =>
     mutate(
