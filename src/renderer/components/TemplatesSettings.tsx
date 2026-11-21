@@ -22,7 +22,7 @@ import {
   DropdownMenuContent,
   DropdownMenuTrigger,
 } from "./ui/dropdown-menu";
-import { Link, useNavigate } from "@tanstack/react-router";
+import { Link } from "@tanstack/react-router";
 import { useDeleteTemplate, useDuplicateTemplate } from "@/data/templates";
 import { Spinner } from "./ui/spinner";
 import type { MouseEventHandler } from "react";
@@ -33,8 +33,6 @@ type Props = {
 };
 
 export const TemplatesSettings = (props: Props) => {
-  const navigate = useNavigate();
-
   return (
     <Card className="gap-0 pb-0">
       <CardHeader className="border-b px-4 [.border-b]:pb-6">
@@ -46,6 +44,7 @@ export const TemplatesSettings = (props: Props) => {
         </CardDescription>
         <CardAction className="-mt-1.5">
           <Button
+            data-arrow-nav
             variant={"ghost"}
             size={"icon-sm"}
             render={<Link to="/settings/template/new" />}
@@ -61,14 +60,16 @@ export const TemplatesSettings = (props: Props) => {
             <li
               role="listitem"
               key={template.id}
-              className="hover:bg-accent px-4 py-4 last:rounded-b-xl"
-              onClick={() => {
-                navigate({
-                  to: "/settings/template/$templateId",
-                  params: { templateId: template.id },
-                });
-              }}
+              className="hover:bg-accent relative px-4 py-4 last:rounded-b-xl"
             >
+              <Link
+                data-arrow-nav
+                to="/settings/template/$templateId"
+                params={{ templateId: template.id }}
+                aria-label={template.name}
+                draggable={false}
+                className="absolute inset-0 rounded-[inherit] outline-none focus-visible:ring-[3px] focus-visible:ring-ring/50"
+              />
               <div className="flex items-center justify-between">
                 <div className="flex flex-col gap-1">
                   <h3 className="text-sm font-medium">{template.name}</h3>
@@ -76,7 +77,7 @@ export const TemplatesSettings = (props: Props) => {
                     {template.description}
                   </p>
                 </div>
-                <div className="flex items-center gap-2">
+                <div className="relative z-10 flex items-center gap-2">
                   <TemplateActions template={template} />
                 </div>
               </div>

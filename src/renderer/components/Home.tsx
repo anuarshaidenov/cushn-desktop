@@ -71,7 +71,7 @@ const HomeEmptyState = () => {
           </EmptyDescription>
         </EmptyHeader>
         <EmptyContent>
-          <Button size={"xs"} onClick={openDialog}>
+          <Button data-arrow-nav size={"xs"} onClick={openDialog}>
             Create new budget <ShortcutKeys id="budget.create" />
           </Button>
         </EmptyContent>

@@ -49,6 +49,7 @@ export const HomeLinkRow = (props: {
   return (
     <li>
       <Item
+        data-arrow-nav
         size="sm"
         className="flex-nowrap px-2.5 py-2"
         render={

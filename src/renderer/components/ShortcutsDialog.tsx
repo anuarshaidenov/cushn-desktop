@@ -23,12 +23,22 @@ import { useShortcutsDialogStore } from "@/stores/useShortcutsDialogStore";
 // Also opens the list from text fields, where `?` types a character.
 const typingHotkey = "Mod+/";
 
-// Shortcuts outside the catalog: Escape is a fallback listener, favorite views are plain bindings.
+// Shortcuts outside the catalog: Escape and the arrows are fallback listeners, favorite views are plain bindings.
 const extraRows: Record<string, ReactNode> = {
   General: (
-    <Row name="Go back a level">
-      <HotkeyKeys hotkey="Escape" />
-    </Row>
+    <>
+      <Row name="Go back a level">
+        <HotkeyKeys hotkey="Escape" />
+      </Row>
+      <Row name="Move between items">
+        <span className="inline-flex items-center gap-1">
+          <HotkeyKeys hotkey="ArrowUp" />
+          <HotkeyKeys hotkey="ArrowDown" />
+          <HotkeyKeys hotkey="ArrowLeft" />
+          <HotkeyKeys hotkey="ArrowRight" />
+        </span>
+      </Row>
+    </>
   ),
   "Go to": (
     <Row name="Open favorite view 1–9">

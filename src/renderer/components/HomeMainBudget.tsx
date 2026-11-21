@@ -33,6 +33,7 @@ export const HomeMainBudget = ({ budget }: Props) => {
     <section aria-labelledby={headingId} className="flex flex-col gap-2">
       <HomeSectionHeading id={headingId} title="Current budget" />
       <Link
+        data-arrow-nav
         to="/dashboard/$budgetId"
         params={{ budgetId: budget.id }}
         className={cn(

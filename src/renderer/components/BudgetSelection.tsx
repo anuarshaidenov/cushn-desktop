@@ -92,13 +92,17 @@ export const BudgetSelectionProvider = ({
   );
 };
 
-// Read when the key is pressed, so cards and rows don't each track hover and register the keys.
-const hoveredBudgetId = () =>
-  document
-    .querySelector(`[${MARQUEE_ITEM_ATTRIBUTE}]:hover`)
-    ?.getAttribute(MARQUEE_ITEM_ATTRIBUTE);
+// Read when the key is pressed, so cards and rows don't each track hover and focus and register the keys.
+// Keyboard focus wins: after arrowing to a budget, the pointer may rest on another.
+const targetBudgetId = () =>
+  (
+    document
+      .querySelector(":focus-visible")
+      ?.closest(`[${MARQUEE_ITEM_ATTRIBUTE}]`) ??
+    document.querySelector(`[${MARQUEE_ITEM_ATTRIBUTE}]:hover`)
+  )?.getAttribute(MARQUEE_ITEM_ATTRIBUTE);
 
-/** ⌘A, Esc, and E / ⌘⌫ on the selection, or on the hovered budget when nothing is selected. */
+/** ⌘A, Esc, and E / ⌘⌫ on the selection, or on the focused or hovered budget when nothing is selected. */
 const BudgetListHotkeys = () => {
   const { budgets, selectedBudgets, setSelectedIds, toggleAll } =
     useBudgetSelection();
@@ -110,8 +114,8 @@ const BudgetListHotkeys = () => {
       if (await action(selectedBudgets)) setSelectedIds([]);
       return;
     }
-    const hoveredId = hoveredBudgetId();
-    await action(budgets.filter((budget) => budget.id === hoveredId));
+    const targetId = targetBudgetId();
+    await action(budgets.filter((budget) => budget.id === targetId));
   };
 
   useHotkey(appHotkeys["budgets.selectAll"], toggleAll, { ignoreInputs: true });

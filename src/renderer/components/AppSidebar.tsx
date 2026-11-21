@@ -160,6 +160,7 @@ export function AppSidebar() {
               {items.map((item) => (
                 <SidebarMenuItem key={item.title}>
                   <SidebarMenuButton
+                    data-arrow-nav
                     render={renderItem(item)}
                     tooltip={goToTooltip(item.title, item.hotkeyId)}
                   />
@@ -167,6 +168,7 @@ export function AppSidebar() {
               ))}
               <SidebarMenuItem>
                 <SidebarMenuButton
+                  data-arrow-nav
                   onClick={openDialog}
                   tooltip={{
                     hidden: false,
@@ -196,6 +198,7 @@ export function AppSidebar() {
                 {favoriteViews?.views.map((view, index) => (
                   <SidebarMenuItem key={view.id}>
                     <SidebarMenuButton
+                      data-arrow-nav
                       render={
                         <Link
                           to="/dashboard/views/$id"
@@ -233,6 +236,7 @@ export function AppSidebar() {
           <TooltipTrigger
             render={
               <Button
+                data-arrow-nav
                 variant="ghost"
                 size="icon-xs"
                 render={

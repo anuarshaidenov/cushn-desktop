@@ -6,6 +6,7 @@ export const ThemeToggle = () => {
 
   return (
     <Button
+      data-arrow-nav
       variant={"ghost"}
       size={"sm"}
       onClick={() => {

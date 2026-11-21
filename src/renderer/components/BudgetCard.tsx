@@ -49,6 +49,7 @@ export const BudgetCard = memo(function BudgetCard(props: Props) {
       >
         {/* An overlay link, not a wrapper: buttons nested in an anchor navigated on click. */}
         <Link
+          data-arrow-nav
           to="/dashboard/$budgetId"
           params={{ budgetId: props.budget.id }}
           search={props.currentSearch}

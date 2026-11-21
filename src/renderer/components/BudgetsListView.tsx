@@ -1,4 +1,4 @@
-import { useRouter } from "@tanstack/react-router";
+import { Link } from "@tanstack/react-router";
 import { Spinner } from "./ui/spinner";
 import type { Id } from "@shared/domain";
 import { HugeiconsIcon } from "@hugeicons/react";
@@ -71,30 +71,30 @@ const BudgetListItem = React.memo(function BudgetListItem({
   const [isMenuPending, setIsMenuPending] = React.useState(false);
   const startMenuAction = () => setIsMenuPending(true);
   const settleMenuAction = () => setIsMenuPending(false);
-  const router = useRouter();
 
   return (
     <li className="">
       <ContextMenu disabled={isMenuPending}>
         <ContextMenuTrigger
           data-marquee-id={budget.id}
-          onClick={(e) => {
-            if (toggleOnModifierClick(e)) return;
-            router.navigate({
-              to: "/dashboard/$budgetId",
-              params: {
-                budgetId: budget.id,
-              },
-              search: currentSearch,
-            });
-          }}
           className={cn(
-            "block w-full cursor-pointer px-4 py-3 text-sm hover:bg-accent data-popup-open:bg-accent",
+            "relative block w-full px-4 py-3 text-sm hover:bg-accent has-[a:focus-visible]:bg-accent data-popup-open:bg-accent",
             {
               "bg-accent": isSelected,
             },
           )}
         >
+          {/* An overlay link, not a wrapper: buttons nested in an anchor navigated on click. */}
+          <Link
+            data-arrow-nav
+            to="/dashboard/$budgetId"
+            params={{ budgetId: budget.id }}
+            search={currentSearch}
+            aria-label={budget.title}
+            draggable={false}
+            onClick={toggleOnModifierClick}
+            className="absolute inset-0 outline-none focus-visible:ring-[3px] focus-visible:ring-ring/50 focus-visible:ring-inset"
+          />
           <div className="flex w-full items-center gap-2">
             <BudgetListActions
               budget={budget}
@@ -121,7 +121,7 @@ const BudgetListItem = React.memo(function BudgetListItem({
 
               <div className="flex shrink-0 items-center gap-2">
                 <div
-                  className="hidden md:block"
+                  className="relative z-10 hidden md:block"
                   onClick={(e) => {
                     // Base UI commits a select on click, and portalled popups still bubble to this row.
                     e.stopPropagation();
@@ -165,7 +165,7 @@ const BudgetCheckbox = (props: {
       onCheckedChange={props.onToggle}
       aria-label="Select budget"
       data-budget-id={props.budgetId}
-      className="after:-inset-x-1"
+      className="relative z-10 after:-inset-x-1"
     />
   );
 };
@@ -189,7 +189,7 @@ const BudgetListActions = (
               e.stopPropagation();
             }}
             variant={"ghost"}
-            className="size-5 after:-inset-y-1.5 data-popup-open:bg-accent"
+            className="relative z-10 size-5 after:-inset-y-1.5 data-popup-open:bg-accent"
             size={"icon-xs"}
           />
         }

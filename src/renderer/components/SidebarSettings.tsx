@@ -29,6 +29,7 @@ export const SidebarSettings = () => {
               </span>
             </div>
             <Switch
+              data-arrow-nav
               checked={transparent && !reduced}
               disabled={reduced}
               aria-label="Transparent sidebar"

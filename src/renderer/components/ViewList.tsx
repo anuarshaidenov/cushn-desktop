@@ -204,6 +204,7 @@ const ViewListItem = ({ view }: { view: BudgetViewSummary }) => {
       >
         {/* An overlay link, not a wrapper: the menu button nested in an anchor navigated on click. */}
         <Link
+          data-arrow-nav
           to="/dashboard/views/$id"
           params={{ id: view.id }}
           aria-label={view.title}
@@ -254,7 +255,7 @@ export const ViewListEmptyState = (props: { onAddView: () => void }) => {
         </EmptyDescription>
       </EmptyHeader>
       <EmptyContent>
-        <Button size="sm" onClick={props.onAddView}>
+        <Button data-arrow-nav size="sm" onClick={props.onAddView}>
           Add view
         </Button>
       </EmptyContent>

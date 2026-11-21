@@ -34,6 +34,7 @@ const ExportBackup = () => {
               </span>
             </div>
             <Button
+              data-arrow-nav
               variant="outline"
               size="sm"
               disabled={isPending}
@@ -88,6 +89,7 @@ const ImportBackup = () => {
               </span>
             </div>
             <Button
+              data-arrow-nav
               variant="outline"
               size="sm"
               disabled={isPending}

@@ -144,6 +144,7 @@ const AllocationCard = (props: {
             </ul>
             {count > COLLAPSED_ROWS && (
               <Button
+                data-arrow-nav
                 variant="ghost"
                 size="xs"
                 aria-controls={listId}
@@ -180,6 +181,7 @@ const SliceRow = (props: {
   onHighlight: () => void;
 }) => (
   <li
+    data-arrow-nav
     tabIndex={0}
     inert={props.hidden}
     className={cn(

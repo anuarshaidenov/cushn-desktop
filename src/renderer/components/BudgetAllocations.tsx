@@ -143,6 +143,7 @@ const BudgetAllocation = (props: {
             />
             {clipboardExpenses.length > 0 && (
               <Button
+                data-arrow-nav
                 variant="outline"
                 size="xs"
                 className="gap-1.5 self-start"
