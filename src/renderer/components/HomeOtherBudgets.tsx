@@ -26,8 +26,9 @@ export const HomeOtherBudgets = (props: Props) => {
         action={
           // The tiles start 8px below, so the 32px target grows upward instead.
           <Link
+            data-arrow-nav
             to="/dashboard"
-            className="relative rounded-sm text-xs text-muted-foreground transition-colors after:absolute after:-inset-x-2 after:-top-3 after:-bottom-1 hover:text-foreground"
+            className="relative rounded-sm text-xs text-muted-foreground transition-colors outline-none after:absolute after:-inset-x-2 after:-top-3 after:-bottom-1 hover:text-foreground focus-visible:ring-[3px] focus-visible:ring-ring/50"
           >
             See all
           </Link>
@@ -50,6 +51,7 @@ const OtherBudget = ({ budget }: { budget: HomeBudget }) => {
 
   return (
     <Link
+      data-arrow-nav
       to="/dashboard/$budgetId"
       params={{ budgetId: budget.id }}
       className={cn(

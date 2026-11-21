@@ -45,6 +45,7 @@ export const ShortcutsSettings = () => {
           shortcut you would rather turn off.
         </p>
         <Button
+          data-arrow-nav
           variant="outline"
           size="sm"
           disabled={Object.keys(customHotkeys).length === 0}
@@ -234,6 +235,7 @@ const ShortcutRow = ({
           </Tooltip>
         )}
         <Button
+          data-arrow-nav
           ref={fieldRef}
           variant={isRecording ? "outline" : "ghost"}
           size="sm"

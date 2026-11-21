@@ -83,6 +83,7 @@ export const AgentsError = (props: {
     </EmptyHeader>
     <EmptyContent>
       <Button
+        data-arrow-nav
         size="sm"
         variant="outline"
         disabled={props.isFetching}
@@ -191,6 +192,7 @@ const AgentRow = (props: {
       <ItemActions>
         {isPending && <Spinner className="text-muted-foreground" />}
         <Switch
+          data-arrow-nav
           checked={connected}
           readOnly={!detected}
           disabled={isPending || (detected && present.length === 0)}

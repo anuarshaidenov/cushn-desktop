@@ -12,6 +12,7 @@ import { Onboarding } from "@/components/onboarding/Onboarding";
 import { Button } from "@/components/ui/button";
 import { settingsQueries } from "@/data/settings";
 import type { NavigationTracker } from "@/lib/navigationStack";
+import { useArrowNavigation } from "@/hooks/use-arrow-navigation";
 import { useEscapeNavigation } from "@/hooks/use-escape-navigation";
 import { useUndoShortcuts } from "@/hooks/use-undo-shortcuts";
 import { HotkeysProvider } from "@tanstack/react-hotkeys";
@@ -83,6 +84,7 @@ function RootComponent() {
 function RootShortcuts() {
   const { navigationTracker } = Route.useRouteContext();
   useEscapeNavigation(navigationTracker);
+  useArrowNavigation();
   useUndoShortcuts();
   return null;
 }

@@ -140,7 +140,7 @@ export const appHotkeys = defineAppHotkeys({
   "budgets.archiveHovered": {
     hotkey: "E",
     meta: {
-      name: "Archive hovered or selected budgets",
+      name: "Archive focused, hovered or selected budgets",
       group: "Budgets list",
     },
     scope: hotkeyScopes.budgetsList,
@@ -148,7 +148,10 @@ export const appHotkeys = defineAppHotkeys({
   },
   "budgets.trashHovered": {
     hotkey: "Mod+Backspace",
-    meta: { name: "Delete hovered or selected budgets", group: "Budgets list" },
+    meta: {
+      name: "Delete focused, hovered or selected budgets",
+      group: "Budgets list",
+    },
     scope: hotkeyScopes.budgetsList,
     options: { requireReset: true },
   },

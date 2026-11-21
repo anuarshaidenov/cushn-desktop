@@ -151,7 +151,14 @@ const BudgetListItemActions = (props: { budget: Budget }) => {
   return (
     <DropdownMenu>
       <DropdownMenuTrigger
-        render={<Button size="icon-xs" variant="ghost" disabled={isPending} />}
+        render={
+          <Button
+            data-arrow-nav
+            size="icon-xs"
+            variant="ghost"
+            disabled={isPending}
+          />
+        }
       >
         {isPending ? (
           <Spinner />

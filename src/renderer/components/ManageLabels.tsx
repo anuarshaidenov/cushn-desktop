@@ -207,7 +207,9 @@ const LabelColor = ({
 
   return (
     <Popover>
-      <PopoverTrigger render={<Button variant={"ghost"} size={"icon-xs"} />}>
+      <PopoverTrigger
+        render={<Button data-arrow-nav variant={"ghost"} size={"icon-xs"} />}
+      >
         <div
           className="size-3 rounded-full"
           style={{ backgroundColor: currentColor }}

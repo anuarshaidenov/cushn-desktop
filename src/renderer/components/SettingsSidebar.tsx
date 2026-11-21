@@ -115,6 +115,7 @@ export const SettingsSidebar = () => {
           <TooltipTrigger
             render={
               <Button
+                data-arrow-nav
                 variant={"ghost"}
                 size={"xs"}
                 render={<Link to="/dashboard" />}
@@ -135,6 +136,7 @@ export const SettingsSidebar = () => {
               {items.map((item) => (
                 <SidebarMenuItem key={item.title}>
                   <SidebarMenuButton
+                    data-arrow-nav
                     render={renderItem(item)}
                     tooltip={goToTooltip(item.title, item.hotkey)}
                     className={cn(item.badge && "pr-14")}
@@ -159,6 +161,7 @@ export const SettingsSidebar = () => {
             <SidebarMenu>
               <SidebarMenuItem>
                 <SidebarMenuButton
+                  data-arrow-nav
                   render={
                     <Link
                       to="/settings/templates"
@@ -178,6 +181,7 @@ export const SettingsSidebar = () => {
               </SidebarMenuItem>
               <SidebarMenuItem>
                 <SidebarMenuButton
+                  data-arrow-nav
                   render={
                     <Link
                       to="/settings/labels"
@@ -197,6 +201,7 @@ export const SettingsSidebar = () => {
               </SidebarMenuItem>
               <SidebarMenuItem>
                 <SidebarMenuButton
+                  data-arrow-nav
                   render={
                     <Link
                       to="/settings/archive"
@@ -216,6 +221,7 @@ export const SettingsSidebar = () => {
               </SidebarMenuItem>
               <SidebarMenuItem>
                 <SidebarMenuButton
+                  data-arrow-nav
                   render={
                     <Link
                       to="/settings/trash"

@@ -165,6 +165,7 @@ const TrashedBudgetActions = (props: { budget: TrashedBudgetListItem }) => {
         <DropdownMenuTrigger
           render={
             <Button
+              data-arrow-nav
               size="icon-xs"
               variant="ghost"
               disabled={isRestoring || isDeleting}
@@ -240,6 +241,7 @@ const EmptyTrashButton = (props: {
   return (
     <>
       <Button
+        data-arrow-nav
         variant="outline"
         size="sm"
         className="mt-0.5 shrink-0"
