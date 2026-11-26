@@ -285,10 +285,10 @@ export const RATES_ATTRIBUTION = {
 } as const;
 
 /** The clients Cushn can connect its MCP server to. */
-export const AGENT_KINDS = ["claude-code", "codex", "claude-desktop"] as const;
+export const AGENT_KINDS = ["claude-code", "codex", "claude-desktop", "raycast"] as const;
 export type AgentKind = (typeof AGENT_KINDS)[number];
 
-/** `unknown`: the client has no account to ask about (Claude Desktop) or the check failed. */
+/** `unknown`: the client has no account to ask about (Claude Desktop, Raycast) or the check failed. */
 export type AgentAccount =
   | { status: "signed-in"; email: string | null; plan: string | null }
   | { status: "signed-out" }

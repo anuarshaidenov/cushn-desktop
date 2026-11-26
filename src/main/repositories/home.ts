@@ -20,6 +20,7 @@ import type { Id } from "@shared/domain";
 import { roundMoney } from "@shared/money";
 import type { AppDatabase } from "../db";
 import { budgetAllocations, budgets, expenses } from "../db/schema";
+import { budgetLastActivityAt, budgetSpent } from "./budgets.aggregates";
 
 const OTHER_BUDGETS_LIMIT = 4;
 const BIGGEST_EXPENSES_LIMIT = 5;
@@ -60,21 +61,18 @@ export function summary(db: AppDatabase): HomeSummary {
 
 /** Every active budget with its spent total, newest activity first. */
 function activeBudgetsByActivity(db: Reader): HomeBudget[] {
-  const lastActivityAt = sql<number>`max(${budgets.createdAt}, coalesce(max(${expenses.createdAt}), 0))`;
   return db
     .select({
       id: budgets.id,
       title: budgets.title,
       currency: budgets.currency,
       income: budgets.income,
-      spent: sql<number>`coalesce(sum(${expenses.amount}), 0)`,
-      lastActivityAt,
+      spent: budgetSpent,
+      lastActivityAt: budgetLastActivityAt,
     })
     .from(budgets)
-    .leftJoin(expenses, eq(expenses.budgetId, budgets.id))
     .where(and(eq(budgets.status, "active"), isNull(budgets.deletedAt)))
-    .groupBy(budgets.id)
-    .orderBy(desc(lastActivityAt), desc(budgets.createdAt), desc(budgets.id))
+    .orderBy(desc(budgetLastActivityAt), desc(budgets.createdAt), desc(budgets.id))
     .all()
     .map((budget) => ({ ...budget, spent: roundMoney(budget.spent) }));
 }

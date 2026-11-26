@@ -483,6 +483,56 @@ describe("detect claude-desktop", () => {
   });
 });
 
+describe("detect raycast", () => {
+  const PLIST = `<plist version="1.0">
+  <dict>
+    <key>CFBundleShortVersionString</key>
+    <string>1.104.1</string>
+  </dict>
+</plist>`;
+
+  it("finds Raycast.app in /Applications with its version", async () => {
+    const { detector, calls } = setup({
+      paths: ["/Applications/Raycast.app"],
+      files: { "/Applications/Raycast.app/Contents/Info.plist": PLIST },
+    });
+
+    expect(await detector.detect("raycast")).toEqual({
+      installation: { path: "/Applications/Raycast.app", version: "1.104.1" },
+      account: { status: "unknown" },
+    });
+    expect(calls).toEqual([]);
+  });
+
+  it("finds Raycast.app in ~/Applications", async () => {
+    const { detector } = setup({ paths: [`${HOME}/Applications/Raycast.app`] });
+
+    expect((await detector.detect("raycast")).installation).toEqual({
+      path: `${HOME}/Applications/Raycast.app`,
+      version: null,
+    });
+  });
+
+  it("has no CLI", async () => {
+    const { detector } = setup({ paths: ["/Applications/Raycast.app"] });
+
+    expect(await detector.resolveCli("raycast")).toBeNull();
+  });
+
+  it("reports not installed, and on other platforms", async () => {
+    for (const platform of ["darwin", "linux", "win32"] as const) {
+      const { detector } = setup({
+        platform,
+        paths: platform === "darwin" ? [] : ["/Applications/Raycast.app"],
+      });
+      expect(await detector.detect("raycast")).toEqual({
+        installation: null,
+        account: { status: "unknown" },
+      });
+    }
+  });
+});
+
 describe("child env", () => {
   it("passes an allowlist with the resolved PATH, never API keys", async () => {
     const { detector, calls } = setup({

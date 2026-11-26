@@ -6,6 +6,7 @@ import {
   SocketAlert,
 } from "@/components/AgentsSettings";
 import { useAgents } from "@/data/agents";
+import { onboardingAgentGroups } from "@/lib/agents";
 import { StepLayout } from "./StepLayout";
 
 // The sample budgets answer both.
@@ -32,7 +33,11 @@ export const OnboardingAgents = () => {
         ) : (
           <>
             <SocketAlert />
-            <AgentList agents={agents} fadeIn={fadeIn} />
+            <AgentList
+              agents={agents}
+              fadeIn={fadeIn}
+              groups={onboardingAgentGroups}
+            />
           </>
         )}
       </div>

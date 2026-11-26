@@ -9,6 +9,8 @@
  *   Disconnect. `codex mcp add|remove` (0.153.1) re-serializes every `[mcp_servers.*]` table,
  *   dropping comments and keys it doesn't know, so it would change the user's other servers.
  * - Claude Desktop: `mcpServers.cushn` in `claude_desktop_config.json`, no skill.
+ * - Raycast: only the record, which keeps the launcher installed; Cushn's Raycast extension
+ *   spawns it itself.
  *
  * `<userData>/agent-connections.json` records each write before it happens. Undo checks every
  * recorded item first: one that's no longer as Cushn wrote it belongs to the user now, so it stays
@@ -35,6 +37,7 @@ const LABELS: Record<AgentKind, string> = {
   "claude-code": "Claude Code",
   codex: "Codex",
   "claude-desktop": "Claude Desktop",
+  raycast: "Raycast",
 };
 
 export type ConnectionsFs = Pick<
@@ -60,7 +63,7 @@ export interface ConnectionsDependencies {
 export interface Connections {
   /** Cushn has a record of connecting it, and the client still has the server as Cushn left it. */
   isConnected(kind: AgentKind): Promise<boolean>;
-  /** `cliPath` is the resolved `claude` or `codex`, `null` for Claude Desktop. */
+  /** `cliPath` is the resolved `claude` or `codex`, `null` for Claude Desktop and Raycast. */
   connect(
     kind: AgentKind,
     options: { launcherPath: string; cliPath: string | null },
@@ -74,7 +77,8 @@ export interface Connections {
  * - `claude-cli`: `cli add` ran with `env` over the child env, `cli remove` undoes it;
  *   `configFile` is only read, to confirm the server is still there;
  * - `toml-block`: `text` was appended to `file`;
- * - `json-entry`: `mcpServers.cushn` was set in `file`; `createdKey`: `mcpServers` was added too.
+ * - `json-entry`: `mcpServers.cushn` was set in `file`; `createdKey`: `mcpServers` was added too;
+ * - `launcher-only`: nothing outside the manifest was written.
  */
 const registrationSchema = z.discriminatedUnion("type", [
   z.object({
@@ -97,6 +101,7 @@ const registrationSchema = z.discriminatedUnion("type", [
     createdFile: z.boolean(),
     createdKey: z.boolean(),
   }),
+  z.object({ type: z.literal("launcher-only") }),
 ]);
 
 const connectionSchema = z.object({
@@ -264,6 +269,7 @@ export function createConnections(deps: ConnectionsDependencies): Connections {
     registration: Registration,
     launcherPath: string,
   ): Promise<RegistrationState> {
+    if (registration.type === "launcher-only") return "ours";
     if (registration.type === "toml-block") {
       const text = await readText(registration.file);
       return text === null ? "absent" : codexTable(text, registration.text, launcherPath).state;
@@ -292,6 +298,9 @@ export function createConnections(deps: ConnectionsDependencies): Connections {
   ): Promise<Plan> {
     const paths = clientPaths(platform, deps.homeDir, env);
     if (kind === "claude-desktop") return planClaudeDesktop(launcherPath, paths.claudeDesktop);
+    if (kind === "raycast") {
+      return { registration: { type: "launcher-only" }, skills: null, apply: async () => {} };
+    }
     if (cliPath === null) throw new CushnError("NOT_FOUND", `${LABELS[kind]} isn't installed.`);
     return kind === "claude-code"
       ? planClaudeCode(launcherPath, cliPath, env, paths.claudeCode)
@@ -432,6 +441,8 @@ export function createConnections(deps: ConnectionsDependencies): Connections {
     cliPath: string | null,
   ) {
     switch (registration.type) {
+      case "launcher-only":
+        return;
       case "claude-cli": {
         const env = { ...withoutClaudeConfigDir(await deps.childEnv()), ...registration.env };
         const cli = cliPath ?? registration.cli;
@@ -724,6 +735,8 @@ function describeRegistration(registration: Registration) {
       return `${registration.file} ([mcp_servers.cushn])`;
     case "json-entry":
       return `${registration.file} (mcpServers.cushn)`;
+    case "launcher-only":
+      return "the launcher";
   }
 }
 

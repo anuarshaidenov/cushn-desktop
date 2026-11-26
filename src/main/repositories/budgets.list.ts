@@ -6,9 +6,11 @@
  * page the same way.
  *
  * Paging is keyset, not offset: the cursor is the JSON of the last row's sort
- * tuple (`[created_at, id]` or `[income, created_at, id]`), and the next page
- * starts strictly after it with a row-value comparison. Rows that are added,
- * archived or deleted between pages never shift a page boundary.
+ * tuple (`[created_at, id]`, or `[income | last activity, created_at, id]`),
+ * and the next page starts strictly after it with a row-value comparison.
+ * Rows that are added, archived or deleted between pages never shift a page
+ * boundary; a budget whose last activity changes between pages can move
+ * across one.
  */
 import { type SQL, and, asc, desc, eq, inArray, isNotNull, isNull, sql } from "drizzle-orm";
 import type { SQLiteColumn } from "drizzle-orm/sqlite-core";
@@ -26,8 +28,13 @@ import { CushnError } from "@shared/errors";
 import type { AppDatabase } from "../db";
 import { budgetLabels, budgets, templates } from "../db/schema";
 import { budgetTitleMatches } from "../db/search";
+import { budgetLastActivityAt } from "./budgets.aggregates";
 
-export interface BudgetListQuery extends BudgetListFilters, PageArgs {
+/** The IPC sorts, plus last activity (as Home orders), which only agents use. */
+export type BudgetListSortBy = BudgetSortBy | "lastActivity";
+
+export interface BudgetListQuery extends Omit<BudgetListFilters, "sortBy">, PageArgs {
+  sortBy?: BudgetListSortBy;
   status: BudgetStatus;
   /** `null`: budgets in any View or none. */
   viewId: Id<"budgetViews"> | null;
@@ -76,6 +83,7 @@ type ListRow = {
   budget: Budget;
   template: Template | null;
   label: BudgetListItem["label"];
+  lastActivityAt: number;
 };
 
 /** Fetches one row past the page, which tells whether another page follows. */
@@ -93,6 +101,7 @@ function selectPage<T>(
       budget: budgets,
       template: templates,
       label: { id: budgetLabels.id, name: budgetLabels.name, color: budgetLabels.color },
+      lastActivityAt: budgetLastActivityAt,
     })
     .from(budgets)
     .leftJoin(templates, eq(templates.id, budgets.templateId))
@@ -107,7 +116,7 @@ function selectPage<T>(
   const last = pageRows.at(-1);
   return {
     page: pageRows.map(toPageItem),
-    continueCursor: isDone || !last ? null : JSON.stringify(sort.tuple(last.budget)),
+    continueCursor: isDone || !last ? null : JSON.stringify(sort.tuple(last)),
     isDone,
   };
 }
@@ -132,8 +141,8 @@ type SortTuple = (number | string)[];
 
 interface Sort {
   /** Most significant first; always ends in `id`, so no two rows tie. */
-  columns: SQLiteColumn[];
-  tuple(budget: Budget): SortTuple;
+  columns: (SQLiteColumn | SQL)[];
+  tuple(row: ListRow): SortTuple;
 }
 
 /**
@@ -141,21 +150,25 @@ interface Sort {
  * (`created_at, id`) in the same direction. The same tuple is what a cursor
  * holds.
  */
-const sorts: Record<BudgetSortBy, Sort> = {
+const sorts: Record<BudgetListSortBy, Sort> = {
   createdAt: {
     columns: [budgets.createdAt, budgets.id],
-    tuple: (budget) => [budget.createdAt, budget.id],
+    tuple: ({ budget }) => [budget.createdAt, budget.id],
   },
   income: {
     columns: [budgets.income, budgets.createdAt, budgets.id],
-    tuple: (budget) => [budget.income, budget.createdAt, budget.id],
+    tuple: ({ budget }) => [budget.income, budget.createdAt, budget.id],
+  },
+  lastActivity: {
+    columns: [budgetLastActivityAt, budgets.createdAt, budgets.id],
+    tuple: ({ budget, lastActivityAt }) => [lastActivityAt, budget.createdAt, budget.id],
   },
 };
 
 /** Ties fall back to `id`, as for the other sorts. */
 const trashSort: Sort = {
   columns: [budgets.deletedAt, budgets.id],
-  tuple: (budget) => [budget.deletedAt ?? 0, budget.id],
+  tuple: ({ budget }) => [budget.deletedAt ?? 0, budget.id],
 };
 
 /** Rows strictly after `tuple` in the sort: `(c1, c2, …) < (?, ?, …)` for `desc`, `>` for `asc`. */
