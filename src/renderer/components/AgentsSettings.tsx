@@ -57,7 +57,7 @@ export const AgentsSettings = () => {
       <CardHeader className="border-b px-4 [.border-b]:pb-6">
         <CardTitle>Connect an agent</CardTitle>
         <CardDescription>
-          Agents can read your budgets and make changes.
+          Agents and Raycast can read your budgets and make changes.
         </CardDescription>
       </CardHeader>
       <CardContent className="p-0 py-0">
@@ -100,9 +100,10 @@ export const AgentsError = (props: {
 export const AgentList = (props: {
   agents: AgentStatus[] | undefined;
   fadeIn: boolean;
+  groups?: readonly AgentGroup[];
 }) => (
   <ul className="flex flex-col" role="list" aria-busy={!props.agents}>
-    {agentGroups.map((group) => (
+    {(props.groups ?? agentGroups).map((group) => (
       <li key={group.id} role="listitem">
         <AgentRow
           group={group}

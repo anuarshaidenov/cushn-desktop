@@ -356,6 +356,70 @@ describe("budgets.get", () => {
   });
 });
 
+describe("budgets.spentByBudget / spentByAllocation", () => {
+  function budgetWithSpending() {
+    const budget = insertBudget(handle.db, { title: "June", createdAt: 1 });
+    const [needs, wants, empty] = [1, 2, 3].map((sortOrder) =>
+      insertAllocation(handle.db, { budgetId: budget.id, percentage: 30, amount: 300, sortOrder }),
+    );
+    for (const [allocation, amount] of [
+      [needs, 0.1],
+      [needs, 0.2],
+      [wants, 2.2],
+      [wants, 1.1],
+    ] as const) {
+      insertExpense(handle.db, {
+        budgetId: budget.id,
+        allocationId: allocation.id,
+        title: "x",
+        amount,
+        order: 0,
+      });
+    }
+    return { budget, needs, wants, empty };
+  }
+
+  it("sums each budget's expenses through roundMoney, 0 for a budget without expenses", () => {
+    const { budget } = budgetWithSpending();
+    const idle = insertBudget(handle.db, { title: "Idle", createdAt: 2 });
+
+    const spent = budgets.spentByBudget(handle.db, [budget.id, idle.id]);
+
+    expect(spent).toEqual(
+      new Map([
+        [budget.id, 3.6],
+        [idle.id, 0],
+      ]),
+    );
+    expect(budgets.spentByBudget(handle.db, [])).toEqual(new Map());
+  });
+
+  it("sums each allocation's expenses through roundMoney, leaving out allocations without any", () => {
+    const { budget, needs, wants } = budgetWithSpending();
+    const other = insertBudget(handle.db, { title: "Other", createdAt: 2 });
+    const otherNeeds = insertAllocation(handle.db, {
+      budgetId: other.id,
+      percentage: 100,
+      amount: 100,
+      sortOrder: 1,
+    });
+    insertExpense(handle.db, {
+      budgetId: other.id,
+      allocationId: otherNeeds.id,
+      title: "y",
+      amount: 7,
+      order: 0,
+    });
+
+    expect(budgets.spentByAllocation(handle.db, budget.id)).toEqual(
+      new Map([
+        [needs.id, 0.3],
+        [wants.id, 3.3],
+      ]),
+    );
+  });
+});
+
 describe("budgets.getLatest", () => {
   it("returns the most recently created active budget as a full row, icon included", () => {
     // By creation time, archived ones skipped.

@@ -8,7 +8,9 @@ import type { DatabaseHandle } from "../db";
 import { templates } from "../db/schema";
 import * as budgets from "./budgets";
 import {
+  insertAllocation,
   insertBudget,
+  insertExpense,
   insertLabel,
   insertTemplate,
   insertView,
@@ -354,6 +356,64 @@ describe("budgets.listActive / listArchived: sorting", () => {
       ),
     ).toBe("bedac");
   });
+
+  /** Spends in budget `budgetId` at `createdAt`. */
+  function spend(budgetId: BudgetListItem["id"], createdAt: number) {
+    const allocation = insertAllocation(handle.db, {
+      budgetId,
+      percentage: 100,
+      amount: 100,
+      sortOrder: 0,
+    });
+    insertExpense(handle.db, {
+      budgetId,
+      allocationId: allocation.id,
+      title: "x",
+      amount: 1,
+      order: 0,
+      createdAt,
+    });
+  }
+
+  it("sorts by last activity, the newer of creation and newest expense; ties by creation order", () => {
+    const [a, b, , d] = ["a", "b", "c", "d"].map((title, index) =>
+      insertBudget(handle.db, { title, createdAt: index + 1 }),
+    );
+    spend(a.id, 10);
+    // An expense older than its budget leaves the activity at createdAt.
+    spend(d.id, 0);
+    // Ties with d's creation; d was created later, so it leads in desc.
+    spend(b.id, 4);
+
+    const byActivity = { ...firstPage, sortBy: "lastActivity" } as const;
+    expect(letters(budgets.listActive(handle.db, byActivity))).toBe("adbc");
+    expect(letters(budgets.listActive(handle.db, { ...byActivity, sortOrder: "asc" }))).toBe(
+      "cbda",
+    );
+  });
+
+  it("moves an old budget to the top of the last-activity sort when it gets an expense", () => {
+    const [old] = ["old", "mid", "new"].map((title, index) =>
+      insertBudget(handle.db, { title, createdAt: index + 1 }),
+    );
+    const byActivity = { ...firstPage, sortBy: "lastActivity" } as const;
+    expect(titles(budgets.listActive(handle.db, byActivity))).toEqual(["new", "mid", "old"]);
+
+    spend(old.id, 100);
+
+    expect(titles(budgets.listActive(handle.db, byActivity))).toEqual(["old", "new", "mid"]);
+  });
+
+  it("sorts the archived list by last activity too", () => {
+    const [a] = ["a", "b"].map((title, index) =>
+      insertBudget(handle.db, { title, status: "archived", createdAt: index + 1 }),
+    );
+    spend(a.id, 5);
+
+    expect(letters(budgets.listArchived(handle.db, { ...firstPage, sortBy: "lastActivity" }))).toBe(
+      "ab",
+    );
+  });
 });
 
 describe("budgets.listActive / listArchived: title search", () => {
@@ -546,6 +606,53 @@ describe("budgets.listActive / listArchived: cursor paging", () => {
     expect(flags).toEqual([false, false, true]);
     expect(pages.flat().map((b) => b.id)).toEqual(expectedOrder(rows, sortBy, sortOrder));
   });
+
+  it.each(["desc", "asc"] as const)(
+    "pages past 25 by lastActivity %s with no duplicates or gaps",
+    (sortOrder) => {
+      const rows = manyBudgets(60);
+      // Activity ties: across budgets, with other budgets' creation, and with
+      // a page boundary.
+      const activity = new Map(rows.map((row) => [row.id, row.createdAt]));
+      rows.forEach((row, i) => {
+        if (i % 4 !== 0) return;
+        const createdAt = 1000 + ((i * 7) % 25);
+        const allocation = insertAllocation(handle.db, {
+          budgetId: row.id,
+          percentage: 100,
+          amount: 100,
+          sortOrder: 0,
+        });
+        insertExpense(handle.db, {
+          budgetId: row.id,
+          allocationId: allocation.id,
+          title: "x",
+          amount: 1,
+          order: 0,
+          createdAt,
+        });
+        activity.set(row.id, Math.max(row.createdAt, createdAt));
+      });
+      const sign = sortOrder === "asc" ? 1 : -1;
+      const expected = [...rows]
+        .sort(
+          (a, b) =>
+            sign *
+            (compare(activity.get(a.id)!, activity.get(b.id)!) ||
+              compare(a.createdAt, b.createdAt) ||
+              compare(a.id, b.id)),
+        )
+        .map((row) => row.id);
+
+      const { pages, flags } = pageThrough((cursor) =>
+        budgets.listActive(handle.db, { sortBy: "lastActivity", sortOrder, cursor, numItems: 25 }),
+      );
+
+      expect(pages.map((page) => page.length)).toEqual([25, 25, 10]);
+      expect(flags).toEqual([false, false, true]);
+      expect(pages.flat().map((b) => b.id)).toEqual(expected);
+    },
+  );
 
   it.each(sorts)("pages the archived list by %s %s", (sortBy, sortOrder) => {
     const rows = manyBudgets(30, "archived");

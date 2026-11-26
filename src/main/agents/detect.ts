@@ -182,7 +182,7 @@ export function createDetector(deps: DetectorDependencies): Detector {
   }
 
   async function resolveCli(kind: AgentKind) {
-    if (kind === "claude-desktop") return null;
+    if (kind === "claude-desktop" || kind === "raycast") return null;
     const { name, override } = CLIS[kind];
     const overridden = getEnv(override);
     if (overridden) return (await deps.exists(overridden)) ? overridden : null;
@@ -237,17 +237,20 @@ export function createDetector(deps: DetectorDependencies): Detector {
     return { status: "signed-in", ...chatgptIdentity(claims) };
   }
 
+  async function detectMacApp(bundle: string): Promise<Detection> {
+    const account = { status: "unknown" } as const;
+    const app = await firstExisting([
+      path.join("/Applications", bundle),
+      path.join(deps.homeDir, "Applications", bundle),
+    ]);
+    if (app === null) return { installation: null, account };
+    const plist = await deps.readFile(path.join(app, "Contents", "Info.plist"));
+    return { installation: { path: app, version: plistVersion(plist) }, account };
+  }
+
   async function detectClaudeDesktop(): Promise<Detection> {
     const account = { status: "unknown" } as const;
-    if (deps.platform === "darwin") {
-      const app = await firstExisting([
-        "/Applications/Claude.app",
-        path.join(deps.homeDir, "Applications", "Claude.app"),
-      ]);
-      if (app === null) return { installation: null, account };
-      const plist = await deps.readFile(path.join(app, "Contents", "Info.plist"));
-      return { installation: { path: app, version: plistVersion(plist) }, account };
-    }
+    if (deps.platform === "darwin") return detectMacApp("Claude.app");
     if (isWindows) {
       const localAppData = getEnv("LOCALAPPDATA") ?? path.join(deps.homeDir, "AppData", "Local");
       const app = await firstExisting([path.join(localAppData, "AnthropicClaude")]);
@@ -265,6 +268,10 @@ export function createDetector(deps: DetectorDependencies): Detector {
           return detectCli(kind, ["login", "status"], codexAccount);
         case "claude-desktop":
           return detectClaudeDesktop();
+        case "raycast":
+          return deps.platform === "darwin"
+            ? detectMacApp("Raycast.app")
+            : Promise.resolve({ installation: null, account: { status: "unknown" } });
       }
     },
     resolveCli,

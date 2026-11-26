@@ -1,7 +1,10 @@
 import { z } from "zod";
+import type { Page } from "@shared/api";
 import { BUDGET_ICON_GROUPS, isBudgetIconName } from "@shared/budgetIcons";
 import { CURRENCY_CODES } from "@shared/currencies";
+import type { Id } from "@shared/domain";
 import { CushnError } from "@shared/errors";
+import type { AppDatabase } from "../../db";
 import { id } from "../../ipc/schemas";
 import * as budgets from "../../repositories/budgets";
 import { defineTool } from "../tool";
@@ -46,13 +49,17 @@ const filterFields = {
     .optional()
     .describe('Only budgets in one of these currencies: ISO 4217 codes such as "usd" or "eur".'),
   sortBy: z
-    .enum(["createdAt", "income"])
+    .enum(["createdAt", "income", "lastActivity"])
     .optional()
-    .describe("Sort by creation time (the default) or by income. Ties keep creation order."),
+    .describe(
+      "Sort by creation time (the default), by income, or by last activity: when the budget " +
+        "was created or its newest expense was added, whichever is later (editing an expense " +
+        "doesn't count; the home summary's order). Ties keep creation order.",
+    ),
   sortOrder: z
     .enum(["asc", "desc"])
     .optional()
-    .describe('"desc" (the default) puts the newest or largest first.'),
+    .describe('"desc" (the default) puts the newest, largest or most recently active first.'),
 };
 
 const pageFields = {
@@ -76,6 +83,17 @@ const PAGING =
 const budgetId = id("budgets");
 const budgetIds = z.array(budgetId).min(1);
 
+function withSpent<T extends { id: Id<"budgets"> }>(db: AppDatabase, result: Page<T>) {
+  const spent = budgets.spentByBudget(
+    db,
+    result.page.map((budget) => budget.id),
+  );
+  return {
+    ...result,
+    page: result.page.map((budget) => ({ ...budget, spent: spent.get(budget.id) ?? 0 })),
+  };
+}
+
 const listBudgets = defineTool({
   kind: "read",
   name: "list_budgets",
@@ -84,10 +102,10 @@ const listBudgets = defineTool({
     "archived budgets (list_archived_budgets) and trashed ones (list_trashed_budgets) are left " +
     "out. A budget plans one amount of income in one currency, split into allocations " +
     "(categories with a percentage and an amount) that expenses are filed under. Each item has " +
-    "the budget's id, title, income, currency, description (Markdown), label, template, viewId, " +
-    "icon and createdAt (epoch ms), but not its allocations (get_budget) or expenses " +
-    `(list_expenses). ${MONEY} Filters combine with AND; the values inside one filter combine ` +
-    `with OR. ${PAGING}`,
+    "the budget's id, title, income, spent (the sum of its expenses), currency, description " +
+    "(Markdown), label, template, viewId, icon and createdAt (epoch ms), but not its " +
+    `allocations (get_budget) or expenses (list_expenses). ${MONEY} Filters combine with AND; ` +
+    `the values inside one filter combine with OR. ${PAGING}`,
   input: z.object({
     ...filterFields,
     viewId: id("budgetViews")
@@ -95,7 +113,8 @@ const listBudgets = defineTool({
       .describe("Only budgets in this View (an id from list_views). Omit it for every View."),
     ...pageFields,
   }),
-  run: ({ db }, { cursor, ...args }) => budgets.listActive(db, { ...args, cursor: cursor ?? null }),
+  run: ({ db }, { cursor, ...args }) =>
+    withSpent(db, budgets.listActive(db, { ...args, cursor: cursor ?? null })),
 });
 
 const listArchivedBudgets = defineTool({
@@ -107,7 +126,7 @@ const listArchivedBudgets = defineTool({
     `unarchive_budgets makes one active again. ${MONEY} ${PAGING}`,
   input: z.object({ ...filterFields, ...pageFields }),
   run: ({ db }, { cursor, ...args }) =>
-    budgets.listArchived(db, { ...args, cursor: cursor ?? null }),
+    withSpent(db, budgets.listArchived(db, { ...args, cursor: cursor ?? null })),
 });
 
 const listTrashedBudgets = defineTool({
@@ -120,7 +139,7 @@ const listTrashedBudgets = defineTool({
     `budget 30 days after it was trashed. ${PAGING}`,
   input: z.object(pageFields),
   run: ({ db }, { cursor, numItems }) =>
-    budgets.listTrashed(db, { cursor: cursor ?? null, numItems }),
+    withSpent(db, budgets.listTrashed(db, { cursor: cursor ?? null, numItems })),
 });
 
 const getBudget = defineTool({
@@ -130,16 +149,22 @@ const getBudget = defineTool({
     "Returns one active or archived budget with its allocations: { budget, allocations }. The " +
     "budget has id, title, income, currency, description (Markdown), templateId and template, " +
     'labelId, viewId, icon, createdAt and status ("active" or "archived"). Allocations come ' +
-    "in display order, each with id, " +
-    "categoryName, percentage, amount (income × percentage / 100), description and editable " +
-    "(false: the app takes no expenses there). What was spent in an allocation is the sum of " +
-    `its expenses (list_expenses); overspending is allowed. ${MONEY} A trashed budget is ` +
-    "NOT_FOUND.",
+    "in display order, each with id, categoryName, percentage, amount (income × percentage / " +
+    "100), spent (the sum of its expenses; amount − spent is what's left, negative when " +
+    "overspent, which is allowed), description and editable (false: the app takes no expenses " +
+    `there). ${MONEY} A trashed budget is NOT_FOUND.`,
   input: z.object({ budgetId: budgetId.describe("The budget's id.") }),
   run: ({ db }, args) => {
-    const result = budgets.get(db, args);
-    if (!result.budget) throw new CushnError("NOT_FOUND", "Budget not found");
-    return result;
+    const { budget, allocations } = budgets.get(db, args);
+    if (!budget) throw new CushnError("NOT_FOUND", "Budget not found");
+    const spent = budgets.spentByAllocation(db, budget.id);
+    return {
+      budget,
+      allocations: allocations.map((allocation) => ({
+        ...allocation,
+        spent: spent.get(allocation.id) ?? 0,
+      })),
+    };
   },
 });
 

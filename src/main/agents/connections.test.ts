@@ -837,6 +837,48 @@ describe("claude-desktop", () => {
   });
 });
 
+describe("raycast", () => {
+  const connect = (connections: ReturnType<typeof setup>["connections"]) =>
+    connections.connect("raycast", { launcherPath: launcher, cliPath: null });
+
+  it("records the connection and writes nothing else", async () => {
+    const { run, connections } = setup();
+
+    await connect(connections);
+
+    expect(run).not.toHaveBeenCalled();
+    expect(await connections.isConnected("raycast")).toBe(true);
+    expect((await manifest()).connections.raycast).toEqual({
+      connectedAt: "2026-10-30T12:00:00.000Z",
+      launcherPath: launcher,
+      registration: { type: "launcher-only" },
+      files: [],
+      dirs: [],
+    });
+    expect(await fsp.readdir(home)).toEqual([]);
+    expect(await fsp.readdir(userData)).toEqual([MANIFEST_FILE]);
+
+    await connections.disconnect("raycast");
+
+    expect(await connections.isConnected("raycast")).toBe(false);
+    expect(await manifest()).toEqual({ version: 1, connections: {} });
+  });
+
+  it("removes only its own record", async () => {
+    await fsp.mkdir(desktopDir(), { recursive: true });
+    const { connections } = setup();
+    await connections.connect("claude-desktop", { launcherPath: launcher, cliPath: null });
+    const desktopConfigText = await read(desktopConfig());
+    await connect(connections);
+
+    await connections.disconnect("raycast");
+
+    expect(Object.keys((await manifest()).connections)).toEqual(["claude-desktop"]);
+    expect(await read(desktopConfig())).toBe(desktopConfigText);
+    expect(await connections.isConnected("claude-desktop")).toBe(true);
+  });
+});
+
 describe("the manifest", () => {
   it("disconnects nothing it has no record of", async () => {
     await write(claudeJson(), JSON.stringify({ mcpServers: { cushn: { command: launcher } } }));

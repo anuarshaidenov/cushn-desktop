@@ -11,7 +11,7 @@
  *   deletes (`deleteMany`, `emptyTrash`, `purgeTrash`) rely on the foreign
  *   keys: allocations and expenses cascade.
  */
-import { and, asc, desc, eq, isNotNull, isNull, lte } from "drizzle-orm";
+import { and, asc, desc, eq, inArray, isNotNull, isNull, lte, sql } from "drizzle-orm";
 import type { ArgsOf, MethodName, ResultOf } from "@shared/api";
 import { type BudgetMarkdownOutput, renderBudgetMarkdown } from "@shared/budgetMarkdown";
 import { TRASH_RETENTION_DAYS } from "@shared/constants";
@@ -28,10 +28,14 @@ import {
   templateCategories,
   templates,
 } from "../db/schema";
-import { listBudgets, listTrashedBudgets } from "./budgets.list";
+import { budgetSpent } from "./budgets.aggregates";
+import { type BudgetListSortBy, listBudgets, listTrashedBudgets } from "./budgets.list";
 
 type Args<M extends MethodName<"budgets">> = ArgsOf<"budgets", M>;
 type Result<M extends MethodName<"budgets">> = ResultOf<"budgets", M>;
+type ListArgs<M extends "listActive" | "listArchived"> = Omit<Args<M>, "sortBy"> & {
+  sortBy?: BudgetListSortBy;
+};
 /** The database or a transaction, for helpers that only read (or also update). */
 type Reader = Pick<AppDatabase, "select">;
 type Writer = Pick<AppDatabase, "select" | "update">;
@@ -90,12 +94,15 @@ export function create(db: AppDatabase, args: Args<"create">): Result<"create"> 
 }
 
 /** Active budgets, optionally in one View; filters, search, sort and cursor. */
-export function listActive(db: AppDatabase, args: Args<"listActive">): Result<"listActive"> {
+export function listActive(db: AppDatabase, args: ListArgs<"listActive">): Result<"listActive"> {
   return listBudgets(db, { ...args, status: "active", viewId: args.viewId ?? null });
 }
 
 /** Archived budgets from every View; the items carry no `viewId`. */
-export function listArchived(db: AppDatabase, args: Args<"listArchived">): Result<"listArchived"> {
+export function listArchived(
+  db: AppDatabase,
+  args: ListArgs<"listArchived">,
+): Result<"listArchived"> {
   const result = listBudgets(db, { ...args, status: "archived", viewId: null });
   return { ...result, page: result.page.map(({ viewId: _viewId, ...item }) => item) };
 }
@@ -147,6 +154,34 @@ export function get(db: AppDatabase, { budgetId }: Args<"get">): Result<"get"> {
     },
     allocations,
   };
+}
+
+/** Each budget's spent: the sum of its expenses through `roundMoney`, 0 without expenses. */
+export function spentByBudget(
+  db: Reader,
+  budgetIds: readonly Id<"budgets">[],
+): Map<Id<"budgets">, number> {
+  if (budgetIds.length === 0) return new Map();
+  const rows = db
+    .select({ id: budgets.id, spent: budgetSpent })
+    .from(budgets)
+    .where(inArray(budgets.id, [...budgetIds]))
+    .all();
+  return new Map(rows.map(({ id, spent }) => [id, roundMoney(spent)]));
+}
+
+/** The spent of each allocation of the budget that has expenses, through `roundMoney`. */
+export function spentByAllocation(
+  db: Reader,
+  budgetId: Id<"budgets">,
+): Map<Id<"budgetAllocations">, number> {
+  const rows = db
+    .select({ allocationId: expenses.allocationId, spent: sql<number>`sum(${expenses.amount})` })
+    .from(expenses)
+    .where(eq(expenses.budgetId, budgetId))
+    .groupBy(expenses.allocationId)
+    .all();
+  return new Map(rows.map(({ allocationId, spent }) => [allocationId, roundMoney(spent)]));
 }
 
 /** The most recently created active budget, as a full row (AddBudgetDialog's defaults). */

@@ -33,7 +33,7 @@ async function ok<T>(name: string, args: Record<string, unknown> = {}): Promise<
 }
 
 function listBudgets(args: Record<string, unknown> = {}) {
-  return ok<Page<BudgetListItem>>("list_budgets", args);
+  return ok<Page<BudgetListItem & { spent: number }>>("list_budgets", args);
 }
 
 function titles(page: Page<{ title: string }>): string[] {
@@ -41,10 +41,33 @@ function titles(page: Page<{ title: string }>): string[] {
 }
 
 async function getBudget(budgetId: Id<"budgets">) {
-  return ok<{ budget: BudgetDetail; allocations: { categoryName: string; amount: number }[] }>(
-    "get_budget",
-    { budgetId },
-  );
+  return ok<{
+    budget: BudgetDetail;
+    allocations: {
+      id: Id<"budgetAllocations">;
+      categoryName: string;
+      amount: number;
+      spent: number;
+    }[];
+  }>("get_budget", { budgetId });
+}
+
+/** Files an expense under a new allocation of the budget. */
+function spend(budgetId: Id<"budgets">, { amount = 1, createdAt = 1 } = {}) {
+  const allocation = insertAllocation(mcp.db, {
+    budgetId,
+    percentage: 100,
+    amount: 100,
+    sortOrder: 0,
+  });
+  insertExpense(mcp.db, {
+    budgetId,
+    allocationId: allocation.id,
+    title: "x",
+    amount,
+    order: 0,
+    createdAt,
+  });
 }
 
 async function inputSchema(name: string) {
@@ -157,6 +180,82 @@ describe("list_budgets", () => {
     ]);
   });
 
+  it("offers last activity as a sort", async () => {
+    expect((await inputSchema("list_budgets")).sortBy).toMatchObject({
+      enum: ["createdAt", "income", "lastActivity"],
+    });
+  });
+
+  it("sorts by last activity, most recent first; ties keep creation order", async () => {
+    const [old, mid] = ["Old", "Mid", "New", "Tied"].map((title, index) =>
+      insertBudget(mcp.db, { title, createdAt: (index + 1) * 10 }),
+    );
+    spend(mid.id, { createdAt: 40 });
+
+    expect(titles(await listBudgets({ sortBy: "lastActivity" }))).toEqual([
+      "Tied",
+      "Mid",
+      "New",
+      "Old",
+    ]);
+    expect(titles(await listBudgets({ sortBy: "lastActivity", sortOrder: "asc" }))).toEqual([
+      "Old",
+      "New",
+      "Mid",
+      "Tied",
+    ]);
+
+    spend(old.id, { createdAt: 50 });
+
+    expect(titles(await listBudgets({ sortBy: "lastActivity" }))).toEqual([
+      "Old",
+      "Tied",
+      "Mid",
+      "New",
+    ]);
+  });
+
+  it("pages the last-activity sort across a page boundary, with filters", async () => {
+    const budgets = Array.from({ length: 7 }, (_, n) =>
+      insertBudget(mcp.db, { title: `B${n}`, currency: "eur", createdAt: n + 1 }),
+    );
+    insertBudget(mcp.db, { title: "USD", createdAt: 100 });
+    spend(budgets[0].id, { createdAt: 50 });
+    spend(budgets[2].id, { createdAt: 50 });
+    // Ties with B6's creation, right across the first page boundary.
+    spend(budgets[5].id, { createdAt: 7 });
+
+    const seen: string[] = [];
+    let cursor: string | null = null;
+    for (let guard = 0; guard < 10; guard++) {
+      const page: Page<BudgetListItem & { spent: number }> = await listBudgets({
+        sortBy: "lastActivity",
+        currencies: ["eur"],
+        numItems: 3,
+        cursor,
+      });
+      seen.push(...titles(page));
+      if (page.isDone) break;
+      cursor = page.continueCursor;
+    }
+
+    expect(seen).toEqual(["B2", "B0", "B6", "B5", "B4", "B3", "B1"]);
+  });
+
+  it("gives each item spent, the rounded sum of its expenses, 0 without any", async () => {
+    const coffee = insertBudget(mcp.db, { title: "Coffee", createdAt: 10 });
+    insertBudget(mcp.db, { title: "Idle", createdAt: 20 });
+    spend(coffee.id, { amount: 0.1 });
+    spend(coffee.id, { amount: 0.2 });
+
+    const result = await listBudgets();
+
+    expect(result.page.map(({ title, spent }) => ({ title, spent }))).toEqual([
+      { title: "Idle", spent: 0 },
+      { title: "Coffee", spent: 0.3 },
+    ]);
+  });
+
   it("pages by cursor, 25 at a time by default", async () => {
     for (let n = 1; n <= 27; n++) insertBudget(mcp.db, { createdAt: n });
 
@@ -201,6 +300,7 @@ describe("list_archived_budgets", () => {
 
     expect(titles(all)).toEqual(["Old", "Old EUR"]);
     expect(all.page[0]).not.toHaveProperty("viewId");
+    expect(all.page[0]).toMatchObject({ spent: 0 });
     expect(titles(euros)).toEqual(["Old EUR"]);
     expect(await inputKeys("list_archived_budgets")).not.toContain("viewId");
   });
@@ -218,7 +318,9 @@ describe("list_trashed_budgets", () => {
     });
 
     expect(await inputKeys("list_trashed_budgets")).toEqual(["cursor", "numItems"]);
-    expect(result.page).toMatchObject([{ title: "Second", status: "archived", deletedAt: 60 }]);
+    expect(result.page).toMatchObject([
+      { title: "Second", status: "archived", deletedAt: 60, spent: 0 },
+    ]);
     expect(titles(next)).toEqual(["First"]);
     expect(next.isDone).toBe(true);
   });
@@ -238,13 +340,29 @@ describe("get_budget", () => {
       status: "active",
     });
     expect(result.allocations).toMatchObject([
-      { categoryName: "Needs", amount: 600, currency: "usd" },
-      { categoryName: "Wants", amount: 400, currency: "usd" },
+      { categoryName: "Needs", amount: 600, spent: 500, currency: "usd" },
+      { categoryName: "Wants", amount: 400, spent: 0, currency: "usd" },
     ]);
     expect((await getBudget(archived.id)).budget).toMatchObject({
       title: "Old",
       status: "archived",
     });
+  });
+
+  it("gives each allocation spent, the rounded sum of its expenses", async () => {
+    const budget = budgetWithAllocations();
+    const [needs] = (await getBudget(budget.id)).allocations;
+    for (const amount of [0.1, 0.2]) {
+      insertExpense(mcp.db, {
+        budgetId: budget.id,
+        allocationId: needs.id,
+        title: "Snack",
+        amount,
+        order: 1,
+      });
+    }
+
+    expect((await getBudget(budget.id)).allocations.map((a) => a.spent)).toEqual([500.3, 0]);
   });
 
   it("answers NOT_FOUND for a missing or trashed budget", async () => {

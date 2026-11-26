@@ -26,7 +26,8 @@ function setup(options: { failConnect?: boolean } = {}) {
         installation: { path: "/bin/x", version: "1.0" },
         account: { status: "unknown" },
       }),
-      resolveCli: async (kind) => (kind === "claude-desktop" ? null : `/bin/${kind}`),
+      resolveCli: async (kind) =>
+        kind === "claude-desktop" || kind === "raycast" ? null : `/bin/${kind}`,
     },
     connections,
     launcher: {
@@ -55,6 +56,7 @@ describe("agent service", () => {
       ["claude-code", false],
       ["codex", true],
       ["claude-desktop", false],
+      ["raycast", false],
     ]);
     expect(list[0].installation).toEqual({ path: "/bin/x", version: "1.0" });
   });
@@ -85,6 +87,31 @@ describe("agent service", () => {
     expect(status.connected).toBe(false);
     expect(log.at(-1)).toBe("remove launcher");
     expect(log).toContain("disconnect claude-desktop null");
+  });
+
+  it("installs the launcher for Raycast and removes it once Raycast is off", async () => {
+    const { service, log } = setup();
+    const status = await service.connect("raycast");
+    expect(status.connected).toBe(true);
+    expect(log).toEqual(["write launcher", "connect raycast /home/.cushn/bin/cushn-mcp null"]);
+
+    await service.refreshLauncher();
+    expect(log.at(-1)).toBe("write launcher");
+
+    await service.disconnect("raycast");
+    expect(log.slice(-2)).toEqual(["disconnect raycast null", "remove launcher"]);
+  });
+
+  it("keeps the launcher for an agent after Raycast is turned off", async () => {
+    const { service, log } = setup();
+    await service.connect("raycast");
+    await service.connect("claude-code");
+
+    await service.disconnect("raycast");
+
+    expect(log).not.toContain("remove launcher");
+    await service.refreshLauncher();
+    expect(log.at(-1)).toBe("write launcher");
   });
 
   it("refreshes the launcher only while a client is connected", async () => {

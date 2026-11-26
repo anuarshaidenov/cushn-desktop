@@ -1,11 +1,16 @@
 import type { IconSvgElement } from "@hugeicons/react";
-import { ChatGptIcon, ClaudeIcon } from "@hugeicons/core-free-icons";
+import {
+  ChatGptIcon,
+  ClaudeIcon,
+  CommandIcon,
+} from "@hugeicons/core-free-icons";
 import type { AgentKind } from "@shared/api";
 
 export const agentTitles: Record<AgentKind, string> = {
   "claude-code": "Claude Code",
   codex: "Codex",
   "claude-desktop": "Claude Desktop",
+  raycast: "Raycast",
 };
 
 /** One Settings row per provider; its switch connects every installed client in `kinds`. */
@@ -13,7 +18,7 @@ export interface AgentGroup {
   id: string;
   title: string;
   icon: IconSvgElement;
-  /** The provider's brand colours for the icon box. */
+  /** The provider's brand colours for the icon box; neutral where the brand isn't ours to use. */
   iconClassName: string;
   /** The first one with an account speaks for the row. */
   kinds: readonly AgentKind[];
@@ -38,4 +43,18 @@ export const agentGroups: readonly AgentGroup[] = [
     kinds: ["codex"],
     installHint: "Install the ChatGPT desktop app or the Codex CLI, then come back here.",
   },
+  {
+    id: "raycast",
+    title: "Raycast",
+    icon: CommandIcon,
+    iconClassName: "bg-muted text-foreground",
+    kinds: ["raycast"],
+    installHint:
+      "Install Raycast and the Cushn extension, then come back here.",
+  },
 ];
+
+/** Onboarding offers the AI agents; Raycast waits in Settings. */
+export const onboardingAgentGroups = agentGroups.filter(
+  (group) => group.id !== "raycast",
+);
